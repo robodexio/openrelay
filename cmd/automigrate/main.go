@@ -59,18 +59,26 @@ func main() {
 	if err := db.AutoMigrate(&poolModule.Pool{}).Error; err != nil {
 		log.Fatalf("Error migrating pools table: %v", err.Error())
 	}
-	kovanAddress, _ := common.HexToAddress("0x35dd2932454449b14cee11a94d3674a936d5d7b2")
-	db.Where(
-		&dbModule.Exchange{Network: 42},
-	).FirstOrCreate(&dbModule.Exchange{Network: 42, Address: kovanAddress })
-	ganacheAddress, _ := common.HexToAddress("0x48bacb9266a570d521063ef5dd96e61686dbe788")
-	db.Where(
-		&dbModule.Exchange{Network: 50},
-	).FirstOrCreate(&dbModule.Exchange{Network: 50, Address: ganacheAddress })
 	mainnetAddress, _ := common.HexToAddress("0x4f833a24e1f95d70f028921e27040ca56e09ab0b")
 	db.Where(
 		&dbModule.Exchange{Network: 1},
-	).FirstOrCreate(&dbModule.Exchange{Network: 1, Address: mainnetAddress })
+	).FirstOrCreate(&dbModule.Exchange{Network: 1, Address: mainnetAddress})
+	ropstenAddress, _ := common.HexToAddress("0x4530c0483a1633c7a1c97d2c53721caff2caaaaf")
+	db.Where(
+		&dbModule.Exchange{Network: 3},
+	).FirstOrCreate(&dbModule.Exchange{Network: 3, Address: ropstenAddress})
+	rinkebyAddress, _ := common.HexToAddress("0x22ebc052f43a88efa06379426120718170f2204e")
+	db.Where(
+		&dbModule.Exchange{Network: 4},
+	).FirstOrCreate(&dbModule.Exchange{Network: 4, Address: rinkebyAddress})
+	kovanAddress, _ := common.HexToAddress("0x35dd2932454449b14cee11a94d3674a936d5d7b2")
+	db.Where(
+		&dbModule.Exchange{Network: 42},
+	).FirstOrCreate(&dbModule.Exchange{Network: 42, Address: kovanAddress})
+	ganacheAddress, _ := common.HexToAddress("0x48bacb9266a570d521063ef5dd96e61686dbe788")
+	db.Where(
+		&dbModule.Exchange{Network: 50},
+	).FirstOrCreate(&dbModule.Exchange{Network: 50, Address: ganacheAddress})
 	if db.Model(&dbModule.Terms{}).First(&dbModule.Terms{}).RecordNotFound() {
 		if err := dbModule.NewTermsManager(db).UpdateTerms("en", terms); err != nil {
 			log.Fatalf("Error setting terms: %v", err.Error())
@@ -113,7 +121,7 @@ func main() {
 			if err = db.Exec(fmt.Sprintf("CREATE USER %v WITH PASSWORD '%v'", username, password)).Error; err != nil {
 				log.Printf(err.Error())
 			}
-			for _, permission := range(strings.Split(permissions, ",")) {
+			for _, permission := range strings.Split(permissions, ",") {
 				permArray := strings.Split(permission, ".")
 				if len(permArray) != 2 {
 					log.Printf("Malformed permission string '$v'", permission)

@@ -6,4 +6,4 @@ COPY --from=corebuild /go/src/github.com/notegio/openrelay/bin/erc721approvalmon
 
 COPY --from=corebuild /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-CMD ["/erc721approvalmonitor", "redis:6379", "ethnode:8545", "queue://newblocks", "queue://recordspend", "0x48bacb9266a570d521063ef5dd96e61686dbe788"]
+CMD ["/erc721approvalmonitor", "redis:6379", "${ETHEREUM_RPC}", "queue://newblocks", "queue://recordspend", "${EXCHANGE_ADDRESS}"]

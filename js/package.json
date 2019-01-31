@@ -23,6 +23,7 @@
     "redis": "^2.8.0",
     "solc": "^0.4.19",
     "truffle": "^3.4.11",
+    "truffle-privatekey-provider": "^1.0.0",
     "web3": "^0.20.0",
     "web3-provider-engine": "^13.3.3"
   },

@@ -67,7 +67,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not open database connection: %v", err.Error())
 	}
-	port := "8080"
+	port := "8082"
 	for _, arg := range os.Args[5:] {
 		if _, err := strconv.Atoi(arg); err == nil {
 			// If the argument is castable as an integer,

@@ -56,7 +56,7 @@ func main() {
 	if len(os.Args) >= 7 {
 		port = os.Args[6]
 	} else {
-		port = "8080"
+		port = "8081"
 	}
 	if redisURL == "" {
 		log.Fatalf("Please specify redis URL")

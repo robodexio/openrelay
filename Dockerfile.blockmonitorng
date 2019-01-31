@@ -6,4 +6,4 @@ COPY --from=corebuild /go/src/github.com/notegio/openrelay/bin/blockmonitor /blo
 
 COPY --from=corebuild /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-CMD ["/blockmonitor", "redis:6379", "ethnode:8545", "queue://newblocks"]
+CMD ["/blockmonitor", "redis:6379", "${ETHEREUM_RPC}", "queue://newblocks"]
