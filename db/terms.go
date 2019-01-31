@@ -199,6 +199,7 @@ func CheckMask(mask, hash []byte) bool {
 func (tm *TermsManager) CheckAddress(address *types.Address) (<-chan bool) {
 	result := make(chan bool)
 	go func(address *types.Address, result chan bool) {
+		/* Don't require signed the terms by the user
 		if _, ok := tm.signers[address.String()]; ok {
 			result <- ok
 			return
@@ -209,6 +210,8 @@ func (tm *TermsManager) CheckAddress(address *types.Address) (<-chan bool) {
 			tm.signers[address.String()] = struct{}{}
 		}
 		result <- (count >= 1)
+		*/
+		result <- true
 	}(address, result)
 	return result
 }
@@ -256,3 +259,4 @@ func NewTermsManager(db *gorm.DB) (*TermsManager) {
 func NewTxTermsManager(db *gorm.DB) (*TermsManager) {
 	return &TermsManager{db, true, make(map[string]struct{}), make(map[uint]*HashMask)}
 }
+
