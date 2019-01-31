@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/hex"
-	"gopkg.in/redis.v3"
-	"github.com/notegio/openrelay/config"
-	"github.com/notegio/openrelay/affiliates"
-	"github.com/notegio/openrelay/types"
+	"fmt"
 	"math/big"
 	"os"
-	"fmt"
+
+	"github.com/notegio/openrelay/affiliates"
+	"github.com/notegio/openrelay/config"
+	"github.com/notegio/openrelay/types"
+	"gopkg.in/redis.v3"
 )
 
 func main() {
@@ -24,8 +25,8 @@ func main() {
 	baseFeeService.Set(baseFeeInt)
 
 	affiliateService := affiliates.NewRedisAffiliateService(redisClient)
-	for _, address := range(authorizedAddresses) {
-		if addressBytes, err := hex.DecodeString(address); err == nil {
+	for _, address := range authorizedAddresses {
+		if addressBytes, err := hex.DecodeString(address[2:]); err == nil {
 			addressArray := &types.Address{}
 			copy(addressArray[:], addressBytes[:])
 			affiliate := affiliates.NewAffiliate(baseFeeInt, 100)

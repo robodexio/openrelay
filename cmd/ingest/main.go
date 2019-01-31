@@ -1,47 +1,48 @@
 package main
 
 import (
-	"github.com/notegio/openrelay/ingest"
-	"github.com/notegio/openrelay/channels"
-	"github.com/notegio/openrelay/affiliates"
-	"github.com/notegio/openrelay/accounts"
-	"github.com/notegio/openrelay/pool"
-	dbModule "github.com/notegio/openrelay/db"
 	"encoding/hex"
-	"net/http"
-	"gopkg.in/redis.v3"
-	"os"
 	"log"
-	"github.com/rs/cors"
+	"net/http"
+	"os"
 	"regexp"
+
+	"github.com/notegio/openrelay/accounts"
+	"github.com/notegio/openrelay/affiliates"
+	"github.com/notegio/openrelay/channels"
+	dbModule "github.com/notegio/openrelay/db"
+	"github.com/notegio/openrelay/ingest"
+	"github.com/notegio/openrelay/pool"
+	"github.com/rs/cors"
+	"gopkg.in/redis.v3"
 )
 
 type route struct {
-    pattern *regexp.Regexp
-    handler http.Handler
+	pattern *regexp.Regexp
+	handler http.Handler
 }
 
 type regexpHandler struct {
-    routes []*route
+	routes []*route
 }
 
 func (h *regexpHandler) Handler(pattern *regexp.Regexp, handler http.Handler) {
-    h.routes = append(h.routes, &route{pattern, handler})
+	h.routes = append(h.routes, &route{pattern, handler})
 }
 
 func (h *regexpHandler) HandleFunc(pattern *regexp.Regexp, handler func(http.ResponseWriter, *http.Request)) {
-    h.routes = append(h.routes, &route{pattern, http.HandlerFunc(handler)})
+	h.routes = append(h.routes, &route{pattern, http.HandlerFunc(handler)})
 }
 
 func (h *regexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    for _, route := range h.routes {
-        if route.pattern.MatchString(r.URL.Path) {
-            route.handler.ServeHTTP(w, r)
-            return
-        }
-    }
-    // no pattern matched; send 404 response
-    http.NotFound(w, r)
+	for _, route := range h.routes {
+		if route.pattern.MatchString(r.URL.Path) {
+			route.handler.ServeHTTP(w, r)
+			return
+		}
+	}
+	// no pattern matched; send 404 response
+	http.NotFound(w, r)
 }
 
 func main() {
@@ -64,7 +65,7 @@ func main() {
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: redisURL,
 	})
-	defaultFeeRecipientSlice, err := hex.DecodeString(defaultFeeRecipientString)
+	defaultFeeRecipientSlice, err := hex.DecodeString(defaultFeeRecipientString[2:])
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -74,7 +75,9 @@ func main() {
 	accountService := accounts.NewRedisAccountService(redisClient)
 	publisher, err := channels.PublisherFromURI(dstChannel, redisClient)
 	enforceTerms := os.Getenv("OR_ENFORCE_TERMS") != "false"
-	if err != nil { log.Fatalf(err.Error()) }
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 	exchangeLookup := dbModule.NewExchangeLookup(db)
 	handler := pool.PoolDecoratorBaseFee(db, redisClient, ingest.Handler(publisher, accountService, affiliateService, enforceTerms, dbModule.NewTermsManager(db), exchangeLookup))
 	feeHandler := pool.PoolDecoratorBaseFee(db, redisClient, ingest.FeeHandler(publisher, accountService, affiliateService, defaultFeeRecipientBytes, exchangeLookup))
