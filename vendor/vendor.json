@@ -479,6 +479,12 @@
 			"revisionTime": "2017-08-08T17:10:09Z"
 		},
 		{
+			"checksumSHA1": "BxH9xJUqczhpL57gfKZe2/VlBHY=",
+			"path": "github.com/fatih/color",
+			"revision": "3f9d52f7176a6927daacff70a3e8d1dc2025c53e",
+			"revisionTime": "2018-10-10T23:13:11Z"
+		},
+		{
 			"checksumSHA1": "VvZKmbuBN1QAG699KduTdmSPwA4=",
 			"origin": "github.com/aws/aws-sdk-go/vendor/github.com/go-ini/ini",
 			"path": "github.com/go-ini/ini",
@@ -547,6 +553,20 @@
 			"revision": "8c6ee72f3e6bcb1542298dd5f76cb74af9742cec",
 			"revisionTime": "2017-11-13T04:44:40Z",
 			"tree": true
+		},
+		{
+			"checksumSHA1": "XEV3BI3nHA/rNa/tIgB7fVCrDww=",
+			"origin": "github.com/fatih/color/vendor/github.com/mattn/go-colorable",
+			"path": "github.com/mattn/go-colorable",
+			"revision": "3f9d52f7176a6927daacff70a3e8d1dc2025c53e",
+			"revisionTime": "2018-10-10T23:13:11Z"
+		},
+		{
+			"checksumSHA1": "y/A5iuvwjytQE2CqVuphQRXR2nI=",
+			"origin": "github.com/fatih/color/vendor/github.com/mattn/go-isatty",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "3f9d52f7176a6927daacff70a3e8d1dc2025c53e",
+			"revisionTime": "2018-10-10T23:13:11Z"
 		},
 		{
 			"path": "github.com/notegio/openrelay",
@@ -780,6 +800,13 @@
 			"revision": "17ce0a37de5a2712a8bf9d58df705e718b3b2cd6",
 			"revisionTime": "2017-08-08T17:10:09Z",
 			"tree": true
+		},
+		{
+			"checksumSHA1": "CNHEeGnucEUlTHJrLS2kHtfNbws=",
+			"origin": "github.com/fatih/color/vendor/golang.org/x/sys/unix",
+			"path": "golang.org/x/sys/unix",
+			"revision": "3f9d52f7176a6927daacff70a3e8d1dc2025c53e",
+			"revisionTime": "2018-10-10T23:13:11Z"
 		},
 		{
 			"checksumSHA1": "ikor+YKJu2eKwyFteBWhsb8IGy8=",
