@@ -104,6 +104,7 @@ func TestAllowanceFromBlockMatch(t *testing.T) {
 	defer destConsumerChannel.StopConsuming()
 	consumerChannel.AddConsumer(erc721approvals.NewAllowanceBlockConsumer(
 		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
+		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		"0x4444444444444444444444444444444444444444",
 		mock.NewMockLogFilterer([]types.Log{*testLog}),
 		destPublisher,
@@ -142,6 +143,7 @@ func TestAllowanceFromBlock(t *testing.T) {
 	destConsumerChannel.StartConsuming()
 	defer destConsumerChannel.StopConsuming()
 	consumerChannel.AddConsumer(erc721approvals.NewAllowanceBlockConsumer(
+		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		"0x4444444444444444444444444444444444444444",
 		mock.NewMockLogFilterer([]types.Log{*testLog}),
@@ -196,6 +198,7 @@ func TestApproveAllFromBlockDisapprove(t *testing.T) {
 	destConsumerChannel.StartConsuming()
 	defer destConsumerChannel.StopConsuming()
 	consumerChannel.AddConsumer(erc721approvals.NewAllowanceBlockConsumer(
+		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		"0x4444444444444444444444444444444444444444",
 		mock.NewMockLogFilterer([]types.Log{*testLog}),
@@ -252,6 +255,7 @@ func TestApproveAllFromBlock(t *testing.T) {
 	defer destConsumerChannel.StopConsuming()
 	consumerChannel.AddConsumer(erc721approvals.NewAllowanceBlockConsumer(
 		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
+		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		"0x4444444444444444444444444444444444444444",
 		mock.NewMockLogFilterer([]types.Log{*testLog}),
 		destPublisher,
@@ -284,6 +288,7 @@ func TestNoAllowanceInBlock(t *testing.T) {
 	destConsumerChannel.StartConsuming()
 	defer destConsumerChannel.StopConsuming()
 	consumerChannel.AddConsumer(erc721approvals.NewAllowanceBlockConsumer(
+		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		common.HexToAddress("0x1dc4c1cefef38a777b15aa20260a54e584b16c48").Big(),
 		"0x4444444444444444444444444444444444444444",
 		mock.NewMockLogFilterer([]types.Log{}),

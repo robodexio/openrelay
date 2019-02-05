@@ -13,6 +13,16 @@ jobs:
       - run: npm install
       - run: make mock
       - run: make nodesetup
+  golang_build_api:
+    docker:
+      - image: circleci/golang:1.8
+    steps:
+      - checkout
+      - run: make bin/api
+      - persist_to_workspace:
+          root: bin
+          paths:
+            - api
   golang_build_delayrelay:
     docker:
       - image: circleci/golang:1.8

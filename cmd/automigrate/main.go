@@ -1,15 +1,16 @@
 package main
 
 import (
-	dbModule "github.com/notegio/openrelay/db"
-	poolModule "github.com/notegio/openrelay/pool"
-	"github.com/notegio/openrelay/common"
-	"github.com/notegio/openrelay/types"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/notegio/openrelay/common"
+	dbModule "github.com/notegio/openrelay/db"
+	poolModule "github.com/notegio/openrelay/pool"
+	"github.com/notegio/openrelay/types"
 )
 
 const terms = `In signing this statement and using OpenRelay, I agree to abide by all terms outlined in the OpenRelay Terms of Use.
@@ -67,7 +68,7 @@ func main() {
 	db.Where(
 		&dbModule.Exchange{Network: 3},
 	).FirstOrCreate(&dbModule.Exchange{Network: 3, Address: ropstenAddress})
-	rinkebyAddress, _ := common.HexToAddress("0x22ebc052f43a88efa06379426120718170f2204e")
+	rinkebyAddress, _ := common.HexToAddress("0x25d26d6a7c86a250b7af3893b46b519388389bbe")
 	db.Where(
 		&dbModule.Exchange{Network: 4},
 	).FirstOrCreate(&dbModule.Exchange{Network: 4, Address: rinkebyAddress})
@@ -92,20 +93,18 @@ func main() {
 	poolHash.Write([]byte(""))
 
 	pool := &poolModule.Pool{
-		SearchTerms: "",
-		Expiration: 1744733652,
-		Nonce: 0,
-		FeeShare: "1000000000000000000",
-		ID: poolHash.Sum(nil),
+		SearchTerms:     "",
+		Expiration:      1744733652,
+		Nonce:           0,
+		FeeShare:        "1000000000000000000",
+		ID:              poolHash.Sum(nil),
 		SenderAddresses: types.NetworkAddressMap{},
 		FilterAddresses: types.NetworkAddressMap{},
 	}
 
 	err = db.Model(&poolModule.Pool{}).Where("id = ?", pool.ID).Assign(pool).FirstOrCreate(pool).Error
 
-
-
-	for _, credString := range(os.Args[3:]) {
+	for _, credString := range os.Args[3:] {
 		creds := strings.Split(credString, ";")
 		if len(creds) != 3 {
 			log.Printf("Malformed credential string: %v", credString)
@@ -150,7 +149,7 @@ func main() {
 			log.Printf("'%v'", result)
 			databaseName := result["DATABASE()"]
 			log.Printf("Database name: %v", databaseName)
-			for _, permission := range(strings.Split(permissions, ",")) {
+			for _, permission := range strings.Split(permissions, ",") {
 				permArray := strings.Split(permission, ".")
 				if len(permArray) != 2 {
 					log.Printf("Malformed permission string '$v'", permission)
@@ -166,7 +165,7 @@ func main() {
 				}
 			}
 			if err := db.Exec("FLUSH PRIVILEGES;").Error; err != nil {
-				log.Printf(err.Error());
+				log.Printf(err.Error())
 			}
 		}
 		log.Printf("Created '%v'", credString)

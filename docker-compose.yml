@@ -2,12 +2,7 @@ version: "3"
 
 services:
 
-  corebuild:
-    image: corebuild
-    build:
-      context: ./
-      dockerfile: Dockerfile.composebase
-
+  # Redis queue container
   redis:
     image: redis:alpine
     ports:
@@ -17,6 +12,7 @@ services:
       restart_policy:
         condition: on-failure
 
+  # PostgreSQL DB container
   postgres:
     image: postgres
     ports:
@@ -26,6 +22,56 @@ services:
       restart_policy:
         condition: on-failure
 
+  # Container with built binaries 
+  corebuild:
+    build:
+      context: ./
+      dockerfile: Dockerfile.composebase
+    image: corebuild
+
+  #########################################################
+  #########################################################
+  #########################################################
+  
+  # Initializes affiliate service and records last recorded block number (for block monitor service)
+  initialize:
+    build:
+      context: ./
+      dockerfile: Dockerfile.initialize
+    image: "openrelay/initialize:latest"
+    command: ["/initialize", "redis:6379", "${ETHEREUM_LAST_RECORDED_BLOCK_NUMBER}", "${FEE_AMOUNT_ZRX}", "${FEE_RECIPIENT_ADDRESS}"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+
+  # Main external service receiving all HTTP requests
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile.api
+    image: "openrelay/api:latest"
+    ports:
+      - "8080:8080"
+    command: [
+      "/api",
+      "postgres://ingest@postgres",
+      "${POSTGRES_PASSWORD_API}",
+      "redis:6379",
+      "topic://newblocks",
+      "queue://api",
+      "${FEE_RECIPIENT_ADDRESS}",
+    ]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # Main external service receiving all HTTP requests
   ingest:
     build:
       context: ./
@@ -35,13 +81,15 @@ services:
       - "8081:8081"
     command: ["/ingest", "postgres://ingest@postgres", "${POSTGRES_PASSWORD_INGEST}", "redis:6379", "${FEE_RECIPIENT_ADDRESS}", "queue://ingest"]
     depends_on:
-      - redis
       - corebuild
+      - postgres
+      - redis
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # Router service used to split requests for main and test networks
   exchangesplitter:
     build:
       context: ./
@@ -49,14 +97,15 @@ services:
     image: "openrelay/exchangesplitter:latest"
     command: ["/exchangesplitter", "redis:6379", "queue://ingest", "testrpc"]
     depends_on:
-      - redis
       - corebuild
+      - redis
     restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # Service to update order fill state from blockchain node
   fillupdate:
     build:
       context: ./
@@ -66,13 +115,14 @@ services:
     volumes:
       - bloomdata:/bloom/data
     depends_on:
-      - redis
       - corebuild
+      - redis
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # Service to check order before placing it to orderbook
   fundcheckrelay:
     build:
       context: ./
@@ -80,53 +130,7 @@ services:
     image: "openrelay/fundcheckrelay:latest"
     command: ["/fundcheckrelay", "redis:6379", "${ETHEREUM_URL}", "queue://fundcheck=>queue://poolfilter", "--invalidation=topic://newblocks"]
     depends_on:
-      - redis
       - corebuild
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-    restart: on-failure
-
-  fillmonitor:
-    build:
-      context: ./
-      dockerfile: Dockerfile.fillmonitorng
-    image: "openrelay/fillmonitorng:latest"
-    command: ["/fillmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://fillblocks", "queue://ordersfilled", "file:///bloom/data/testdata", "${EXCHANGE_ADDRESS}"]
-    volumes:
-      - bloomdata:/bloom/data
-    depends_on:
-      - redis
-      - corebuild
-    restart: on-failure
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
-  multisigmonitor:
-    build:
-      context: ./
-      dockerfile: Dockerfile.multisigmonitor
-    image: "openrelay/multisigmonitor:latest"
-    command: ["/multisigmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://multisigblocks", "${EXCHANGE_ADDRESS}"]
-    depends_on:
-      - redis
-      - corebuild
-    restart: on-failure
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
-  affiliatemonitor:
-    build:
-      context: ./
-      dockerfile: Dockerfile.affiliatemonitor
-    image: "openrelay/affiliatemonitor:latest"
-    command: ["/affiliatemonitor", "redis:6379", "${ETHEREUM_URL}", "queue://affiliateblocks", "${EXCHANGE_ADDRESS}"]
-    depends_on:
       - redis
     restart: on-failure
     deploy:
@@ -134,48 +138,41 @@ services:
       restart_policy:
         condition: on-failure
 
-  pgfillindexer:
+  simplerelay:
     build:
       context: ./
-      dockerfile: Dockerfile.pgfillindexer
-    image: "openrelay/pgfillindexer:latest"
-    command: ["/fillindexer", "redis:6379", "queue://pgordersfilled", "postgres://indexer@postgres", "${POSTGRES_PASSWORD_INDEXER}"]
+      dockerfile: Dockerfile.simplerelay
+    image: "openrelay/simplerelay:latest"
+    command: ["/simplerelay", "redis:6379", "queue://ordersfilled=>queue://pgordersfilled=>topic://ordersfilled", "queue://newblocks=>queue://allowanceblocks=>queue://erc721approvalblocks=>queue://spendblocks=>topic://newblocks=>queue://fillblocks=>queue://canceluptoblocks=>queue://affiliateblocks"]
     depends_on:
-      - redis
-      - postgres
       - corebuild
+      - redis
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # Service monitors Redis queue
+  queuemonitor:
+    build:
+      context: ./
+      dockerfile: Dockerfile.queuemonitor
+    image: "openrelay/queuemonitor:latest"
+    command: ["/queuemonitor", "redis:6379", "1", "newblocks-ropsten", "ordersfilled", "pgordersfilled", "newblocks", "released-ropsten", "fundcheck-ropsten", "allowanceblocks", "recheck-ropsten", "fillupdate-ropsten", "indexer", "preindexer", "spendblocks-ropsten", "recordspend", "ordersfilled-ropsten", "delay2-ropsten", "released", "fundcheck", "allowanceblocks-ropsten", "recheck2-ropsten", "fillupdate", "fillblocks-ropsten", "spendblocks", "recheck2", "delay1", "delay2", "ingest", "fillblocks", "pgindexer", "delay1-ropsten", "multisigblocks", "recheck", "canceluptoblocks", "recordcancel", "${EXCHANGE_ADDRESS}-testrpc"]
+    depends_on:
+      - corebuild
+      - redis
     restart: on-failure
-  
-  initialize:
-    build:
-      context: ./
-      dockerfile: Dockerfile.initialize
-    image: "openrelay/initialize:latest"
-    command: ["/initialize", "redis:6379", "${FEE_AMOUNT_ZRX}", "${FEE_RECIPIENT_ADDRESS}"]
-    depends_on:
-      - redis
-      - corebuild
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
 
-  entrypoint:
-    build:
-      context: ./
-      dockerfile: Dockerfile.testinit
-    volumes:
-      - "./js:/project"
-    command: ["node", "/project/hang.js"]
+  #########################################################
+  #########################################################
+  #########################################################
 
-  pgindexer:
-    build:
-      context: ./
-      dockerfile: Dockerfile.pgindexer
-    image: "openrelay/pgindexer:latest"
-    command: ["/indexer", "redis:6379", "queue://pgindexer", "postgres://indexer@postgres", "${POSTGRES_PASSWORD_INDEXER}"]
-    depends_on:
-      - postgres
-      - redis
-      - corebuild
-    restart: on-failure
-
+  # [PostgreSQL] Service initializes DB
   pgautomigrate:
     build:
       context: ./
@@ -196,10 +193,101 @@ services:
       - "ingest;${POSTGRES_PASSWORD_INGEST};terms.SELECT,terms_sigs.SELECT,terms_sigs.INSERT,pools.SELECT,exchanges.SELECT"
       - "tosmgr;${POSTGRES_PASSWORD_TOS_MGR};terms.SELECT,terms.INSERT,terms.UPDATE,terms_sigs.SELECT,terms_sigs.INSERT,terms_sigs.UPDATE,hash_masks.SELECT,hash_masks.INSERT,hash_masks.DELETE"
     depends_on:
-      - postgres
       - corebuild
+      - postgres
     restart: on-failure
 
+  # [PostgreSQL] Service updates ... (?)
+  pgindexer:
+    build:
+      context: ./
+      dockerfile: Dockerfile.pgindexer
+    image: "openrelay/pgindexer:latest"
+    command: ["/indexer", "redis:6379", "queue://pgindexer", "postgres://indexer@postgres", "${POSTGRES_PASSWORD_INDEXER}"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    restart: on-failure
+
+  # [PostgreSQL] Service updates orders in DB depending on new fills
+  pgfillindexer:
+    build:
+      context: ./
+      dockerfile: Dockerfile.pgfillindexer
+    image: "openrelay/pgfillindexer:latest"
+    command: ["/fillindexer", "redis:6379", "queue://pgordersfilled", "postgres://indexer@postgres", "${POSTGRES_PASSWORD_INDEXER}"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    restart: on-failure
+
+  # [PostgreSQL] Service updates spends in DB
+  spendrecorder:
+    build:
+      context: ./
+      dockerfile: Dockerfile.spendrecorder
+    image: "openrelay/spendrecorder:latest"
+    command: ["/spendrecorder", "redis:6379", "queue://recordspend", "postgres://spendrecorder@postgres", "${POSTGRES_PASSWORD_SPEND_RECORDER}"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    restart: on-failure
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # [PostgreSQL] Service updates order cancel state in DB
+  canceluptoindexer:
+    build:
+      context: ./
+      dockerfile: Dockerfile.canceluptoindexer
+    image: "openrelay/canceluptoindexer:latest"
+    command: ["/canceluptoindexer", "redis:6379", "queue://recordcancel", "postgres://cancelindexer@postgres", "${POSTGRES_PASSWORD_CANCEL_INDEXER}"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    restart: on-failure
+
+  # [PostgreSQL] Service filters order cancel state in DB
+  canceluptofilter:
+    build:
+      context: ./
+      dockerfile: Dockerfile.canceluptofilter
+    image: "openrelay/canceluptofilter:latest"
+    command: ["/canceluptofilter", "redis:6379", "postgres://cancelfilter@postgres", "${POSTGRES_PASSWORD_CANCEL_FILTER}", "queue://${EXCHANGE_ADDRESS}-testrpc=>queue://fillupdate"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    restart: on-failure
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # [PostgreSQL] Service filters pool state in DB
+  poolfilter:
+    build:
+      context: ./
+      dockerfile: Dockerfile.poolfilter
+    image: "openrelay/poolfilter:latest"
+    command: ["/poolfilter", "postgres://poolfilter@postgres", "${POSTGRES_PASSWORD_POOL_FILTER}", "redis:6379", "${ETHEREUM_URL}", "queue://poolfilter=>queue://pgindexer=>topic://instant-broadcast"]
+    depends_on:
+      - corebuild
+      - postgres
+      - redis
+    restart: on-failure
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # [PostgreSQL] Service provides API to retrieve orders info from DB
   pgapi:
     build:
       context: ./
@@ -209,14 +297,16 @@ services:
       - "8082:8082"
     command: ["/searchapi", "redis:6379", "topic://newblocks", "postgres://search@postgres", "${POSTGRES_PASSWORD_SEARCH}"]
     depends_on:
-      - redis
       - corebuild
+      - postgres
+      - redis
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
     restart: on-failure
 
+  # [PostgreSQL] Service provides API to retrieve terms from DB
   termsapi:
     build:
       context: ./
@@ -226,28 +316,70 @@ services:
       - "8083:8083"
     command: ["/terms", "postgres://tos@postgres", "${POSTGRES_PASSWORD_TOS}"]
     depends_on:
-      - redis
       - corebuild
+      - postgres
+      - redis
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
     restart: on-failure
 
-  simplerelay:
+  #########################################################
+  #########################################################
+  #########################################################
+
+  # [Ethereum Monitor] Service listens LogFill and LogCancel events on the Exchange contract
+  fillmonitor:
     build:
       context: ./
-      dockerfile: Dockerfile.simplerelay
-    image: "openrelay/simplerelay:latest"
-    command: ["/simplerelay", "redis:6379", "queue://ordersfilled=>queue://pgordersfilled=>topic://ordersfilled", "queue://newblocks=>queue://allowanceblocks=>queue://erc721approvalblocks=>queue://spendblocks=>topic://newblocks=>queue://fillblocks=>queue://canceluptoblocks=>queue://affiliateblocks"]
+      dockerfile: Dockerfile.fillmonitorng
+    image: "openrelay/fillmonitorng:latest"
+    command: ["/fillmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://fillblocks", "queue://ordersfilled", "file:///bloom/data/testdata", "${EXCHANGE_ADDRESS}"]
+    volumes:
+      - bloomdata:/bloom/data
     depends_on:
-      - redis
       - corebuild
+      - redis
+    restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # [Ethereum Monitor] Service listens events on Multi-signature wallet contract
+  multisigmonitor:
+    build:
+      context: ./
+      dockerfile: Dockerfile.multisigmonitor
+    image: "openrelay/multisigmonitor:latest"
+    command: ["/multisigmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://multisigblocks", "${EXCHANGE_ADDRESS}"]
+    depends_on:
+      - corebuild
+      - redis
+    restart: on-failure
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # [Ethereum Monitor] Service listens events related to affiliates (?)
+  affiliatemonitor:
+    build:
+      context: ./
+      dockerfile: Dockerfile.affiliatemonitor
+    image: "openrelay/affiliatemonitor:latest"
+    command: ["/affiliatemonitor", "redis:6379", "${ETHEREUM_URL}", "queue://affiliateblocks", "${EXCHANGE_ADDRESS}"]
+    depends_on:
+      - corebuild
+      - redis
+    restart: on-failure
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # [Ethereum Monitor] Service handles new blocks on the blockchain node
   blockmonitorng:
     build:
       context: ./
@@ -255,14 +387,15 @@ services:
     image: "openrelay/blockmonitorng:latest"
     command: ["/blockmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://newblocks"]
     depends_on:
-      - redis
       - corebuild
+      - redis
     restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # [Ethereum Monitor] Service listens approve events on ERC20 token contracts
   allowancemonitor:
     build:
       context: ./
@@ -270,14 +403,15 @@ services:
     image: "openrelay/allowancemonitor:latest"
     command: ["/allowancemonitor", "redis:6379", "${ETHEREUM_URL}", "queue://allowanceblocks", "queue://recordspend", "${EXCHANGE_ADDRESS}"]
     depends_on:
-      - redis
       - corebuild
+      - redis
     restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # [Ethereum Monitor] Service listens approve events on ERC721 token contracts
   erc721approvalmonitor:
     build:
       context: ./
@@ -285,14 +419,15 @@ services:
     image: "openrelay/erc721approvalmonitor:latest"
     command: ["/erc721approvalmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://erc721approvalblocks", "queue://recordspend", "${EXCHANGE_ADDRESS}"]
     depends_on:
-      - redis
       - corebuild
+      - redis
     restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
+  # [Ethereum Monitor] Service listens events on token contracts
   spendmonitor:
     build:
       context: ./
@@ -300,29 +435,15 @@ services:
     image: "openrelay/spendmonitor:latest"
     command: ["/spendmonitor", "redis:6379", "${ETHEREUM_URL}", "queue://spendblocks", "queue://recordspend", "${EXCHANGE_ADDRESS}"]
     depends_on:
-      - redis
       - corebuild
+      - redis
     restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
-  spendrecorder:
-    build:
-      context: ./
-      dockerfile: Dockerfile.spendrecorder
-    image: "openrelay/spendrecorder:latest"
-    command: ["/spendrecorder", "redis:6379", "queue://recordspend", "postgres://spendrecorder@postgres", "${POSTGRES_PASSWORD_SPEND_RECORDER}"]
-    depends_on:
-      - redis
-      - corebuild
-    restart: on-failure
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
+  # [Ethereum Monitor] Service listens events on token contracts
   canceluptomonitor:
     build:
       context: ./
@@ -330,68 +451,22 @@ services:
     image: "openrelay/canceluptomonitor:latest"
     command: ["/canceluptomonitor", "redis:6379", "${ETHEREUM_URL}", "queue://canceluptoblocks", "queue://recordcancel", "${EXCHANGE_ADDRESS}"]
     depends_on:
-      - redis
       - corebuild
+      - redis
     restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
 
-  canceluptofilter:
-    build:
-      context: ./
-      dockerfile: Dockerfile.canceluptofilter
-    image: "openrelay/canceluptofilter:latest"
-    command: ["/canceluptofilter", "redis:6379", "postgres://cancelfilter@postgres", "${POSTGRES_PASSWORD_CANCEL_FILTER}", "queue://${EXCHANGE_ADDRESS}-testrpc=>queue://fillupdate"]
-    depends_on:
-      - redis
-      - postgres
-      - corebuild
-    restart: on-failure
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
-  canceluptoindexer:
-    build:
-      context: ./
-      dockerfile: Dockerfile.canceluptoindexer
-    image: "openrelay/canceluptoindexer:latest"
-    command: ["/canceluptoindexer", "redis:6379", "queue://recordcancel", "postgres://cancelindexer@postgres", "${POSTGRES_PASSWORD_CANCEL_INDEXER}"]
-    restart: on-failure
-
-  poolfilter:
-    build:
-      context: ./
-      dockerfile: Dockerfile.poolfilter
-    image: "openrelay/poolfilter:latest"
-    command: ["/poolfilter", "postgres://poolfilter@postgres", "${POSTGRES_PASSWORD_POOL_FILTER}", "redis:6379", "${ETHEREUM_URL}", "queue://poolfilter=>queue://pgindexer=>topic://instant-broadcast"]
-    depends_on:
-      - redis
-      - postgres
-      - corebuild
-    restart: on-failure
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
-  queuemonitor:
-    build:
-      context: ./
-      dockerfile: Dockerfile.queuemonitor
-    image: "openrelay/queuemonitor:latest"
-    command: ["/queuemonitor", "redis:6379", "1", "newblocks-ropsten", "ordersfilled", "pgordersfilled", "newblocks", "released-ropsten", "fundcheck-ropsten", "allowanceblocks", "recheck-ropsten", "fillupdate-ropsten", "indexer", "preindexer", "spendblocks-ropsten", "recordspend", "ordersfilled-ropsten", "delay2-ropsten", "released", "fundcheck", "allowanceblocks-ropsten", "recheck2-ropsten", "fillupdate", "fillblocks-ropsten", "spendblocks", "recheck2", "delay1", "delay2", "ingest", "fillblocks", "pgindexer", "delay1-ropsten", "multisigblocks", "recheck", "canceluptoblocks", "recordcancel", "${EXCHANGE_ADDRESS}-testrpc"]
-    depends_on:
-      - redis
-      - corebuild
-    restart: on-failure
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
+  # # Container running blank script which does nothing
+  # entrypoint:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile.testinit
+  #   volumes:
+  #     - "./js:/project"
+  #   command: ["node", "/project/hang.js"]
 
   # contractinit:
   #   build:
@@ -401,8 +476,8 @@ services:
   #   environment:
   #     - ETHEREUM_URL=${ETHEREUM_URL}
   #   depends_on:
-  #     - redis
   #     - corebuild
+  #     - redis
 
   # simplerelaynewblocks:
   #   build:
@@ -411,6 +486,7 @@ services:
   #   image: "openrelay/simplerelay:latest"
   #   command: ["/simplerelay", "redis:6379", "queue://newblocks", "queue://allowanceblocks", "queue://spendblocks", "topic://newblocks", "queue://fillblocks"]
   #   depends_on:
+  #     - corebuild
   #     - redis
   #   deploy:
   #     replicas: 1
@@ -424,6 +500,7 @@ services:
   #   image: "openrelay/simplerelay:latest"
   #   command: ["/simplerelay", "redis:6379", "queue://released", "queue://recheck", "topic://released-broadcast"]
   #   depends_on:
+  #     - corebuild
   #     - redis
   #   deploy:
   #     replicas: 1
@@ -439,6 +516,7 @@ services:
   #   volumes:
   #     - bloomdata:/bloom/data
   #   depends_on:
+  #     - corebuild
   #     - redis
   #   deploy:
   #     replicas: 1
@@ -452,6 +530,8 @@ services:
   #   image: "openrelay/fundcheckrelay:latest"
   #   command: ["/fundcheckrelay", "redis:6379", "${ETHEREUM_URL}", "queue://recheck2", "queue://pgindexer", "--invalidation=topic://newblocks"]
   #   depends_on:
+  #     - corebuild
+  #     - redis
   #   restart: on-failure
 
 volumes:

@@ -25,6 +25,9 @@ dockerstop:
 nodesetup:
 	cd js ; npm install
 
+bin/api: $(BASE) cmd/api/main.go
+	cd "$(BASE)" && $(GOSTATIC) -o bin/api cmd/api/main.go
+
 bin/delayrelay: $(BASE) cmd/delayrelay/main.go
 	cd "$(BASE)" && $(GOSTATIC) -o bin/delayrelay cmd/delayrelay/main.go
 
@@ -106,7 +109,7 @@ bin/terms: $(BASE) cmd/terms/main.go
 bin/poolfilter: $(BASE) cmd/poolfilter/main.go
 	cd "$(BASE)" && $(GOSTATIC) -o bin/poolfilter cmd/poolfilter/main.go
 
-bin: bin/delayrelay bin/fundcheckrelay bin/getbalance bin/ingest bin/initialize bin/simplerelay bin/validateorder bin/fillupdate bin/indexer bin/fillindexer bin/automigrate bin/searchapi bin/exchangesplitter bin/blockmonitor bin/allowancemonitor bin/spendmonitor bin/fillmonitor bin/multisigmonitor bin/spendrecorder bin/queuemonitor bin/canceluptomonitor bin/canceluptofilter bin/canceluptoindexer bin/erc721approvalmonitor bin/affiliatemonitor bin/terms bin/poolfilter
+bin: bin/api bin/delayrelay bin/fundcheckrelay bin/getbalance bin/ingest bin/initialize bin/simplerelay bin/validateorder bin/fillupdate bin/indexer bin/fillindexer bin/automigrate bin/searchapi bin/exchangesplitter bin/blockmonitor bin/allowancemonitor bin/spendmonitor bin/fillmonitor bin/multisigmonitor bin/spendrecorder bin/queuemonitor bin/canceluptomonitor bin/canceluptofilter bin/canceluptoindexer bin/erc721approvalmonitor bin/affiliatemonitor bin/terms bin/poolfilter
 
 truffleCompile:
 	cd js ; node_modules/.bin/truffle compile
