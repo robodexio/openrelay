@@ -2,26 +2,27 @@ package main
 
 import (
 	"context"
-	"github.com/notegio/openrelay/channels"
-	"github.com/notegio/openrelay/types"
-	dbModule "github.com/notegio/openrelay/db"
-	"github.com/notegio/openrelay/cmd/cmdutils"
-	"github.com/jinzhu/gorm"
-	poolModule "github.com/notegio/openrelay/pool"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"gopkg.in/redis.v3"
+	"fmt"
+	"log"
 	"os"
 	"os/signal"
-	"log"
 	"strconv"
-	"fmt"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/jinzhu/gorm"
+	"github.com/notegio/openrelay/channels"
+	"github.com/notegio/openrelay/cmd/cmdutils"
+	dbModule "github.com/notegio/openrelay/db"
+	poolModule "github.com/notegio/openrelay/pool"
+	"github.com/notegio/openrelay/types"
+	"gopkg.in/redis.v3"
 )
 
 type PoolFilter struct {
-	db *gorm.DB
-	conn bind.ContractCaller
-	networkID uint
+	db        *gorm.DB
+	conn      bind.ContractCaller
+	networkID uint64
 	poolCache map[string]*poolModule.Pool
 }
 
@@ -32,7 +33,7 @@ func (filter *PoolFilter) Filter(delivery channels.Delivery) bool {
 		return false
 	}
 	if !order.Signature.Verify(order.Maker, order.Hash()) {
-		log.Printf("Invalid order signature");
+		log.Printf("Invalid order signature")
 		return false
 	}
 	pool, ok := filter.poolCache[fmt.Sprintf("%#x", order.PoolID)]
@@ -88,11 +89,13 @@ func main() {
 	}
 
 	var poolFilter channels.RelayFilter
-	poolFilter = &PoolFilter{db, conn, uint(networkID), make(map[string]*poolModule.Pool)}
+	poolFilter = &PoolFilter{db, conn, networkID, make(map[string]*poolModule.Pool)}
 	var relays []channels.Relay
 	for _, channelString := range channelStrings {
 		consumerChannel, publisher, _, err := cmdutils.ParseChannels(channelString, redisClient)
-		if err != nil { log.Fatalf(err.Error()) }
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
 		relay := channels.NewRelay(consumerChannel, publisher, poolFilter, concurrency)
 		relay.Start()
 		relays = append(relays, relay)

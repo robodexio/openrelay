@@ -2,11 +2,12 @@ package search
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"github.com/jinzhu/gorm"
 	"github.com/notegio/openrelay/common"
 	dbModule "github.com/notegio/openrelay/db"
-	"net/http"
-	"strconv"
 )
 
 func PairHandler(db *gorm.DB) func(http.ResponseWriter, *http.Request) {

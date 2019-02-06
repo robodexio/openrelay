@@ -78,7 +78,7 @@ type ValidationError struct {
 type AssetData struct {
 	MinAmount string `json:"minAmount"`
 	MaxAmount string `json:"maxAmount"`
-	Precision uint8  `json:"precision"`
+	Precision uint16 `json:"precision"`
 	AssetData string `json:"assetData"`
 }
 

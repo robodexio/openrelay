@@ -5,17 +5,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	accountsModule "github.com/notegio/openrelay/accounts"
-	affiliatesModule "github.com/notegio/openrelay/affiliates"
-	"github.com/notegio/openrelay/channels"
-	"github.com/notegio/openrelay/types"
-	poolModule "github.com/notegio/openrelay/pool"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
 	"strings"
 	"time"
+
+	accountsModule "github.com/notegio/openrelay/accounts"
+	affiliatesModule "github.com/notegio/openrelay/affiliates"
+	"github.com/notegio/openrelay/channels"
+	poolModule "github.com/notegio/openrelay/pool"
+	"github.com/notegio/openrelay/types"
 )
 
 type IngestError struct {
@@ -117,12 +118,12 @@ func Handler(publisher channels.Publisher, accounts accountsModule.AccountServic
 		}
 		networkIDChan := exchangeLookup.ExchangeIsKnown(order.ExchangeAddress)
 		var signedMaker <-chan bool
-		if(enforceTerms) {
+		if enforceTerms {
 			signedMaker = tm.CheckAddress(order.Maker)
 		} else {
-			signedMaker = func() (<-chan bool){
+			signedMaker = func() <-chan bool {
 				result := make(chan bool)
-				go func() {result <- true}()
+				go func() { result <- true }()
 				return result
 			}()
 		}
@@ -265,7 +266,7 @@ func Handler(publisher channels.Publisher, accounts accountsModule.AccountServic
 			}, 400)
 			return
 		}
-		if len(pool.SenderAddresses) != 0 && !bytes.Equal(pool.SenderAddresses[networkID][:], emptyAddress[:]) && !bytes.Equal(pool.SenderAddresses[networkID][:], order.SenderAddress[:]) {
+		if len(pool.SenderAddresses) != 0 && !bytes.Equal(pool.SenderAddresses[uint64(networkID)][:], emptyAddress[:]) && !bytes.Equal(pool.SenderAddresses[uint64(networkID)][:], order.SenderAddress[:]) {
 			returnError(w, IngestError{
 				100,
 				"Validation Failed",

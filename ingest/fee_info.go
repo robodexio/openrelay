@@ -2,16 +2,17 @@ package ingest
 
 import (
 	"encoding/json"
-	accountsModule "github.com/notegio/openrelay/accounts"
-	affiliatesModule "github.com/notegio/openrelay/affiliates"
-	"github.com/notegio/openrelay/channels"
-	"github.com/notegio/openrelay/types"
-	poolModule "github.com/notegio/openrelay/pool"
+	"fmt"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
-	"fmt"
+
+	accountsModule "github.com/notegio/openrelay/accounts"
+	affiliatesModule "github.com/notegio/openrelay/affiliates"
+	"github.com/notegio/openrelay/channels"
+	poolModule "github.com/notegio/openrelay/pool"
+	"github.com/notegio/openrelay/types"
 )
 
 // FeeInputPayload only considers maker and feeRecipient when calculating fees.
@@ -163,7 +164,7 @@ func FeeHandler(publisher channels.Publisher, accounts accountsModule.AccountSer
 			networkID = 1
 		}
 		var senderToSpecify string
-		senderAddress, ok := pool.SenderAddresses[networkID]
+		senderAddress, ok := pool.SenderAddresses[uint64(networkID)]
 		if ok {
 			senderToSpecify = fmt.Sprintf("%#x", senderAddress[:])
 		} else {

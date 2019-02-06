@@ -1,21 +1,22 @@
 package search
 
 import (
-	"encoding/json"
+	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/jinzhu/gorm"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/notegio/openrelay/blockhash"
-	"github.com/notegio/openrelay/common"
-	dbModule "github.com/notegio/openrelay/db"
-	"github.com/notegio/openrelay/types"
 	"math/big"
 	"net/http"
 	urlModule "net/url"
 	"strconv"
 	"strings"
-	"bytes"
+
+	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/jinzhu/gorm"
+	"github.com/notegio/openrelay/blockhash"
+	"github.com/notegio/openrelay/common"
+	dbModule "github.com/notegio/openrelay/db"
+	"github.com/notegio/openrelay/types"
 )
 
 func FormatResponse(orders []dbModule.Order, format string, total, page, perPage int) ([]byte, string, error) {
@@ -211,7 +212,7 @@ func filterByNetworkId(query *gorm.DB, queryObject urlModule.Values, exchangeLoo
 	if err != nil {
 		networkID = 1
 	}
-	exchanges, err := exchangeLookup.GetExchangesByNetwork(int64(networkID))
+	exchanges, err := exchangeLookup.GetExchangesByNetwork(uint64(networkID))
 	if err != nil {
 		return query, err
 	}
@@ -303,7 +304,6 @@ func QueryFilter(query *gorm.DB, queryObject urlModule.Values) (*gorm.DB, []Vali
 		errs = append(errs, ValidationError{err.Error(), 1003, "_takerFee"})
 	}
 
-
 	query = query.Where("expiration_timestamp_in_sec > ?", getExpTime(queryObject))
 	return query, errs
 }
@@ -355,7 +355,7 @@ func SearchHandler(db *gorm.DB) func(http.ResponseWriter, *http.Request, types.P
 		}
 
 		orders := []dbModule.Order{}
-		if count > (pageInt - 1) * perPageInt {
+		if count > (pageInt-1)*perPageInt {
 			if err := query.Find(&orders).Error; err != nil {
 				returnError(w, err, 500)
 				return
@@ -370,9 +370,8 @@ func SearchHandler(db *gorm.DB) func(http.ResponseWriter, *http.Request, types.P
 		response, contentType, err := FormatResponse(orders, acceptHeader, count, pageInt, perPageInt)
 		if err == nil {
 
-
 			url := *r.URL
-			queryObject.Set("page", strconv.Itoa(pageInt + 1))
+			queryObject.Set("page", strconv.Itoa(pageInt+1))
 			url.RawQuery = queryObject.Encode()
 
 			w.Header().Set("Link", fmt.Sprintf("<%v>; rel=\"next\"", (&url).RequestURI()))

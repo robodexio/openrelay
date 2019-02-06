@@ -1,22 +1,29 @@
 package db
 
 import (
-	"github.com/notegio/openrelay/types"
+	"time"
+
 	"github.com/jinzhu/gorm"
+	"github.com/notegio/openrelay/types"
 )
 
+// Exchange contains information about supported exchange.
 type Exchange struct {
-	Address  *types.Address `gorm:"primary_key"`
-	Network  int64          `gorm:"index"`
+	Address   *types.Address `gorm:"primary_key"`
+	Network   uint64         `gorm:"index"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
+// ExchangeLookup contains helper maps for fast lookup.
 type ExchangeLookup struct {
-	byAddressCache map[types.Address]int64
-	byNetworkCache map[int64][]*types.Address
-	db *gorm.DB
+	db             *gorm.DB
+	byAddressCache map[types.Address]uint64
+	byNetworkCache map[uint64][]*types.Address
 }
 
-func (lookup *ExchangeLookup) GetExchangesByNetwork(network int64) ([]*types.Address, error) {
+// GetExchangesByNetwork returns exchanges for specified network ID.
+func (lookup *ExchangeLookup) GetExchangesByNetwork(network uint64) ([]*types.Address, error) {
 	if addresses, ok := lookup.byNetworkCache[network]; ok {
 		return addresses, nil
 	}
@@ -32,7 +39,8 @@ func (lookup *ExchangeLookup) GetExchangesByNetwork(network int64) ([]*types.Add
 	return addresses, nil
 }
 
-func (lookup *ExchangeLookup) GetNetworkByExchange(address *types.Address) (int64, error) {
+// GetNetworkByExchange returns network ID for specified exchange address.
+func (lookup *ExchangeLookup) GetNetworkByExchange(address *types.Address) (uint64, error) {
 	if network, ok := lookup.byAddressCache[*address]; ok {
 		return network, nil
 	}
@@ -44,19 +52,21 @@ func (lookup *ExchangeLookup) GetNetworkByExchange(address *types.Address) (int6
 	return exchange.Network, nil
 }
 
-func (lookup *ExchangeLookup) ExchangeIsKnown(address *types.Address) (<-chan uint) {
-	result := make(chan uint)
-	go func(address *types.Address, result chan uint) {
-		networkid, _ := lookup.GetNetworkByExchange(address)
-		result <- uint(networkid)
+// ExchangeIsKnown returns channel with single expecting value to be pushed.
+func (lookup *ExchangeLookup) ExchangeIsKnown(address *types.Address) <-chan uint64 {
+	result := make(chan uint64)
+	go func(address *types.Address, result chan uint64) {
+		networkID, _ := lookup.GetNetworkByExchange(address)
+		result <- networkID
 	}(address, result)
 	return result
 }
 
-func NewExchangeLookup(db *gorm.DB) (*ExchangeLookup) {
+// NewExchangeLookup creates helper object improving exchanges reading.
+func NewExchangeLookup(db *gorm.DB) *ExchangeLookup {
 	return &ExchangeLookup{
-		make(map[types.Address]int64),
-		make(map[int64][]*types.Address),
 		db,
+		make(map[types.Address]uint64),
+		make(map[uint64][]*types.Address),
 	}
 }

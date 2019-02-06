@@ -5,9 +5,9 @@ import (
 )
 
 type TermsManager interface {
-	CheckAddress(*types.Address) (<-chan bool)
+	CheckAddress(*types.Address) <-chan bool
 }
 
 type ExchangeLookup interface {
-	ExchangeIsKnown(*types.Address) (<-chan uint)
+	ExchangeIsKnown(*types.Address) <-chan uint64
 }

@@ -1,13 +1,14 @@
 package db
 
 import (
-	"github.com/jinzhu/gorm"
-	"github.com/notegio/openrelay/types"
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	"errors"
 	"log"
 	"math/big"
 	"time"
-	"errors"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/jinzhu/gorm"
+	"github.com/notegio/openrelay/types"
 )
 
 const (
@@ -24,18 +25,14 @@ func DefaultSha3() []byte {
 
 type Order struct {
 	types.Order
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	OrderHash []byte  `gorm:"primary_key"`
-	Status    int64   `gorm:"index"`
-	Price     float64 `gorm:"index:price"`
-	FeeRate   float64 `gorm:"index:price"`
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	OrderHash           []byte  `gorm:"primary_key"`
+	Status              int64   `gorm:"index"`
+	Price               float64 `gorm:"index:price"`
+	FeeRate             float64 `gorm:"index:price"`
 	MakerAssetRemaining *types.Uint256
-	MakerFeeRemaining *types.Uint256
-}
-
-func (order *Order) TableName() string {
-	return "orderv2"
+	MakerFeeRemaining   *types.Uint256
 }
 
 func (order *Order) Populate() {
@@ -99,13 +96,11 @@ func (order *Order) Save(db *gorm.DB, status int64) *gorm.DB {
 
 	log.Printf("Attempting to save order %#x", order.Hash())
 
-
-
 	updates := map[string]interface{}{
-		"taker_asset_amount_filled":    order.TakerAssetAmountFilled,
-		"maker_asset_remaining":        order.MakerAssetRemaining,
-		"maker_fee_remaining":          order.MakerFeeRemaining,
-		"status":                       order.Status,
+		"taker_asset_amount_filled": order.TakerAssetAmountFilled,
+		"maker_asset_remaining":     order.MakerAssetRemaining,
+		"maker_fee_remaining":       order.MakerFeeRemaining,
+		"status":                    order.Status,
 	}
 
 	updateScope := db.Model(Order{}).Where("order_hash = ?", order.OrderHash).Updates(updates)

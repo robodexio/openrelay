@@ -2,14 +2,16 @@ package types
 
 import (
 	"database/sql/driver"
+	"errors"
+
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/jinzhu/gorm"
-	"errors"
 )
-type NetworkAddressMap map[uint]*Address
+
+type NetworkAddressMap map[uint64]*Address
 
 type netAddPair struct {
-	Net uint
+	Net     uint64
 	Address Address
 }
 
@@ -34,7 +36,6 @@ func (nmap NetworkAddressMap) Scan(src interface{}) error {
 		return errors.New("NetworkAddressMap scanner src should be []byte")
 	}
 }
-
 
 // GormDataType tells gorm what data type to use for the column.
 func (nmap NetworkAddressMap) GormDataType(dialect gorm.Dialect) string {

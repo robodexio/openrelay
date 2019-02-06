@@ -22,7 +22,7 @@ func BlockHashDecorator(
 			url := *r.URL
 			url.RawQuery = queryObject.Encode()
 			w.Header().Set("Cache-Control", "max-age=5, public")
-			http.Redirect(w, r, (&url).RequestURI(), 307)
+			http.Redirect(w, r, (&url).RequestURI(), http.StatusTemporaryRedirect)
 			return
 		}
 		fn(w, r)

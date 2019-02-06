@@ -98,10 +98,10 @@ func main() {
 
 	// Prepare handlers
 	handlerGetAssetPairs := handlers.GetAssetPairs(db)
-	handlerGetOrders := search.BlockHashDecorator(blockHash, pool.PoolDecorator(db, search.SearchHandler(db)))
-	handlerGetOrder := search.BlockHashDecorator(blockHash, search.OrderHandler(db))
-	handlerGetOrderBook := search.BlockHashDecorator(blockHash, pool.PoolDecorator(db, search.OrderBookHandler(db)))
-	handlerGetFeeRecipients := search.BlockHashDecorator(blockHash, search.FeeRecipientHandler(affiliateService))
+	handlerGetOrders := pool.PoolDecorator(db, search.SearchHandler(db))
+	handlerGetOrder := search.OrderHandler(db)
+	handlerGetOrderBook := pool.PoolDecorator(db, search.OrderBookHandler(db))
+	handlerGetFeeRecipients := search.FeeRecipientHandler(affiliateService)
 	handlerPostOrderConfig := pool.PoolDecoratorBaseFee(db, redisClient, handlers.PostOrderConfig(
 		publisher,
 		accountService,

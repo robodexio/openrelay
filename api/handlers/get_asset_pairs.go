@@ -25,33 +25,24 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 		queryNetworkID := query.Get("networkId")
 
 		// Read pagination query params
-		page, perPage, err := extractPagination(&query)
-		pageOffset := (page - 1) * perPage
-		if err != nil {
-			log.Printf("Unable to extract pagination query params: %v", err.Error())
-			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Unable to extract pagination query params",
-				nil,
-			}, http.StatusBadRequest)
-			return
-		}
+		page, perPage := extractPagination(&query)
+		offset := (page - 1) * perPage
 
 		// Some adjustments
-		if queryAssetDataA == "" && queryAssetDataB != "" {
+		if len(queryAssetDataA) == 0 && len(queryAssetDataB) > 0 {
 			queryAssetDataA = queryAssetDataB
 			queryAssetDataB = ""
 		}
-		networkID, err := strconv.Atoi(queryNetworkID)
+		networkID, err := strconv.ParseUint(queryNetworkID, 10, 64)
 		if err != nil {
 			networkID = 1
 		}
 
 		// Request asset pairs from DB
-		var assetPairs []dbModule.Pair
-		var count int
-		if queryAssetDataA == "" {
-			assetPairs, count, err = dbModule.GetAllTokenPairs(db, int(pageOffset), int(perPage), networkID)
+		var assetPairs []*dbModule.AssetPair
+		var total uint64
+		if len(queryAssetDataA) == 0 {
+			assetPairs, total, err = dbModule.GetAssetPairs(db, offset, perPage, networkID)
 			if err != nil {
 				log.Printf("Unable to get asset pairs from DB: %v", err.Error())
 				respondError(w, &zeroex.Error{
@@ -72,8 +63,8 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 				}, http.StatusBadRequest)
 				return
 			}
-			if queryAssetDataB == "" {
-				assetPairs, count, err = dbModule.GetTokenAPairs(db, assetDataA, int(pageOffset), int(perPage), networkID)
+			if len(queryAssetDataB) == 0 {
+				assetPairs, total, err = dbModule.GetAssetPairsByAssetData(db, assetDataA, offset, perPage, networkID)
 			} else {
 				assetDataB, err := common.HexToAssetData(queryAssetDataB)
 				if err != nil {
@@ -85,13 +76,13 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 					}, http.StatusBadRequest)
 					return
 				}
-				assetPairs, count, err = dbModule.GetTokenABPairs(db, assetDataA, assetDataB, networkID)
+				assetPairs, total, err = dbModule.GetAssetPairsByAssetDatas(db, assetDataA, assetDataB, networkID)
 			}
 			if err != nil {
-				log.Printf("Unable to parse asset data specified in query: %v", err.Error())
+				log.Printf("Unable to get asset pairs from DB: %v", err.Error())
 				respondError(w, &zeroex.Error{
 					zeroex.ErrorCodeValidationFailed,
-					"Unable to parse asset data specified in query",
+					"Unable to get asset pairs from DB",
 					nil,
 				}, http.StatusBadRequest)
 				return
@@ -99,7 +90,7 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// Prepare response
-		paginatedAssetPairs := createPaginatedAssetPairs(uint64(count), page, perPage, assetPairs)
+		paginatedAssetPairs := createPaginatedAssetPairs(total, page, perPage, assetPairs)
 		response, err := json.Marshal(paginatedAssetPairs)
 		if err != nil {
 			log.Printf("Internal error: %v", err.Error())

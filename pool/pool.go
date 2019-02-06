@@ -2,20 +2,21 @@ package pool
 
 import (
 	"bytes"
-	"net/http"
-	"github.com/notegio/openrelay/config"
-	dbModule "github.com/notegio/openrelay/db"
-	"github.com/notegio/openrelay/types"
-	"github.com/notegio/openrelay/search"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/jinzhu/gorm"
-	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"gopkg.in/redis.v3"
+	"fmt"
 	"math/big"
+	"net/http"
 	urlModule "net/url"
 	"regexp"
 	"strings"
-	"fmt"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/crypto/sha3"
+	"github.com/jinzhu/gorm"
+	"github.com/notegio/openrelay/config"
+	dbModule "github.com/notegio/openrelay/db"
+	"github.com/notegio/openrelay/search"
+	"github.com/notegio/openrelay/types"
+	"gopkg.in/redis.v3"
 )
 
 var feeBaseUnits = big.NewInt(1000000000000000000)
@@ -41,7 +42,7 @@ func (pool *Pool) SetBaseFee(baseFee config.BaseFee) {
 	pool.baseFee = baseFee
 }
 
-func (pool *Pool) CheckFilter(order *types.Order, networkid uint) (bool, error) {
+func (pool *Pool) CheckFilter(order *types.Order, networkid uint64) (bool, error) {
 	if len(pool.FilterAddresses) == 0 {
 		return true, nil
 	}
@@ -72,7 +73,7 @@ func (pool Pool) Filter(query *gorm.DB) (*gorm.DB, error) {
 	return query, nil
 }
 
-func (pool Pool) Count(db *gorm.DB) (<-chan uint) {
+func (pool Pool) Count(db *gorm.DB) <-chan uint {
 	result := make(chan uint)
 	var value uint
 	go func() {
@@ -103,7 +104,7 @@ func PoolDecorator(db *gorm.DB, fn func(http.ResponseWriter, *http.Request, type
 		match := poolRegex.FindStringSubmatch(r.URL.Path)
 		if len(match) == 2 {
 			poolName := strings.TrimPrefix(match[1], "/")
-			pool :=  &Pool{}
+			pool := &Pool{}
 			poolHash := sha3.NewKeccak256()
 			poolHash.Write([]byte(poolName))
 			if q := db.Model(&Pool{}).Where("ID = ?", poolHash.Sum(nil)).First(pool); q.Error != nil {
@@ -133,7 +134,7 @@ func PoolDecoratorBaseFee(db *gorm.DB, redisClient *redis.Client, fn func(http.R
 		match := poolRegex.FindStringSubmatch(r.URL.Path)
 		if len(match) == 2 {
 			poolName := strings.TrimPrefix(match[1], "/")
-			pool :=  &Pool{}
+			pool := &Pool{}
 			poolHash := sha3.NewKeccak256()
 			poolHash.Write([]byte(poolName))
 			if q := db.Model(&Pool{}).Where("ID = ?", poolHash.Sum(nil)).First(pool); q.Error != nil {
