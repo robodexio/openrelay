@@ -31,9 +31,8 @@ func PostOrderConfig(
 		// Check HTTP request method
 		if r.Method != "POST" {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Unsupported HTTP request method",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Unsupported HTTP request method",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -45,9 +44,8 @@ func PostOrderConfig(
 		}
 		if contentType != "application/json" {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Unsupported HTTP request content type",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Unsupported HTTP request content type",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -59,18 +57,16 @@ func PostOrderConfig(
 		if err != nil && err != io.EOF {
 			log.Printf("Error reading content: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Error reading content",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Error reading content",
 			}, http.StatusInternalServerError)
 			return
 		}
 		if err := json.Unmarshal(contentBytes[:contentLength], &err); err != nil {
 			log.Printf("Malformed JSON '%v': %v", string(contentBytes[:]), err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeMalformedJSON,
-				"Malformed JSON",
-				nil,
+				Code:   zeroex.ErrorCodeMalformedJSON,
+				Reason: "Malformed JSON",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -80,12 +76,12 @@ func PostOrderConfig(
 		if err != nil && orderConfigRequest.MakerAddress != "" {
 			log.Printf("Malformed JSON '%v': %v", string(contentBytes[:]), err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"makerAddress",
-					zeroex.ValidationErrorCodeIncorrectFormat,
-					"Invalid address format",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "makerAddress",
+					Code:   zeroex.ValidationErrorCodeIncorrectFormat,
+					Reason: "Invalid address format",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -98,12 +94,12 @@ func PostOrderConfig(
 		if err != nil && orderConfigRequest.ExchangeAddress != "" {
 			log.Printf("Malformed JSON '%v': %v", string(contentBytes[:]), err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"exchangeAddress",
-					zeroex.ValidationErrorCodeIncorrectFormat,
-					"Invalid address format",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "exchangeAddress",
+					Code:   zeroex.ValidationErrorCodeIncorrectFormat,
+					Reason: "Invalid address format",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -137,12 +133,12 @@ func PostOrderConfig(
 		networkID := <-chanNetworkID
 		if networkID == 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"exchangeContractAddress",
-					zeroex.ValidationErrorCodeInvalidAddress,
-					"Unknown exchangeContractAddress",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "exchangeContractAddress",
+					Code:   zeroex.ValidationErrorCodeInvalidAddress,
+					Reason: "Unknown exchangeContractAddress",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -152,12 +148,12 @@ func PostOrderConfig(
 		feeRecipient := <-chanAffiliate
 		if feeRecipient == nil {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"feeRecipient",
-					zeroex.ValidationErrorCodeInvalidAddress,
-					"Invalid fee recpient",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "feeRecipient",
+					Code:   zeroex.ValidationErrorCodeInvalidAddress,
+					Reason: "Invalid fee recpient",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -167,12 +163,12 @@ func PostOrderConfig(
 		poolFee, err := pool.Fee()
 		if err != nil {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"pool",
-					zeroex.ValidationErrorCodeInvalidAddress,
-					"Pool error",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "pool",
+					Code:   zeroex.ValidationErrorCodeInvalidAddress,
+					Reason: "Pool error",
 				}},
 			}, http.StatusInternalServerError)
 			return
@@ -208,9 +204,8 @@ func PostOrderConfig(
 		if err != nil {
 			log.Println("Unable to marshal order config response to JSON: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
 			}, http.StatusInternalServerError)
 		}
 

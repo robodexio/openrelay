@@ -19,13 +19,13 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		// Try to find all possible query params
-		query := r.URL.Query()
-		queryAssetDataA := query.Get("assetDataA")
-		queryAssetDataB := query.Get("assetDataB")
-		queryNetworkID := query.Get("networkId")
+		queryObject := r.URL.Query()
+		queryAssetDataA := queryObject.Get("assetDataA")
+		queryAssetDataB := queryObject.Get("assetDataB")
+		queryNetworkID := queryObject.Get("networkId")
 
 		// Read pagination query params
-		page, perPage := extractPagination(&query)
+		page, perPage := extractPagination(&queryObject)
 		offset := (page - 1) * perPage
 
 		// Some adjustments
@@ -46,9 +46,8 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 			if err != nil {
 				log.Printf("Unable to get asset pairs from DB: %v", err.Error())
 				respondError(w, &zeroex.Error{
-					zeroex.ErrorCodeValidationFailed,
-					"Unable to get asset pairs from DB",
-					nil,
+					Code:   zeroex.ErrorCodeValidationFailed,
+					Reason: "Unable to get asset pairs from DB",
 				}, http.StatusBadRequest)
 				return
 			}
@@ -57,9 +56,8 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 			if err != nil {
 				log.Printf("Unable to parse asset data specified in query: %v", err.Error())
 				respondError(w, &zeroex.Error{
-					zeroex.ErrorCodeValidationFailed,
-					"Unable to parse asset data specified in query",
-					nil,
+					Code:   zeroex.ErrorCodeValidationFailed,
+					Reason: "Unable to parse asset data specified in query",
 				}, http.StatusBadRequest)
 				return
 			}
@@ -70,9 +68,8 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 				if err != nil {
 					log.Printf("Unable to parse asset data specified in query: %v", err.Error())
 					respondError(w, &zeroex.Error{
-						zeroex.ErrorCodeValidationFailed,
-						"Unable to parse asset data specified in query",
-						nil,
+						Code:   zeroex.ErrorCodeValidationFailed,
+						Reason: "Unable to parse asset data specified in query",
 					}, http.StatusBadRequest)
 					return
 				}
@@ -81,9 +78,8 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 			if err != nil {
 				log.Printf("Unable to get asset pairs from DB: %v", err.Error())
 				respondError(w, &zeroex.Error{
-					zeroex.ErrorCodeValidationFailed,
-					"Unable to get asset pairs from DB",
-					nil,
+					Code:   zeroex.ErrorCodeValidationFailed,
+					Reason: "Unable to get asset pairs from DB",
 				}, http.StatusBadRequest)
 				return
 			}
@@ -95,9 +91,8 @@ func GetAssetPairs(db *gorm.DB) func(http.ResponseWriter, *http.Request) {
 		if err != nil {
 			log.Printf("Internal error: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Internal error",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Internal error",
 			}, http.StatusInternalServerError)
 			return
 		}

@@ -17,7 +17,6 @@ import (
 	"github.com/notegio/openrelay/blockhash"
 	"github.com/notegio/openrelay/channels"
 	dbModule "github.com/notegio/openrelay/db"
-	"github.com/notegio/openrelay/pool"
 	"github.com/notegio/openrelay/search"
 	"github.com/rs/cors"
 )
@@ -98,18 +97,18 @@ func main() {
 
 	// Prepare handlers
 	handlerGetAssetPairs := handlers.GetAssetPairs(db)
-	handlerGetOrders := pool.PoolDecorator(db, search.SearchHandler(db))
-	handlerGetOrder := search.OrderHandler(db)
-	handlerGetOrderBook := pool.PoolDecorator(db, search.OrderBookHandler(db))
-	handlerGetFeeRecipients := search.FeeRecipientHandler(affiliateService)
-	handlerPostOrderConfig := pool.PoolDecoratorBaseFee(db, redisClient, handlers.PostOrderConfig(
+	handlerGetOrders := handlers.PoolDecorator(db, search.SearchHandler(db))
+	handlerGetOrder := handlers.OrderHandler(db)
+	handlerGetOrderBook := handlers.PoolDecorator(db, search.OrderBookHandler(db))
+	handlerGetFeeRecipients := handlers.FeeRecipientHandler(affiliateService)
+	handlerPostOrderConfig := handlers.PoolDecoratorBaseFee(db, redisClient, handlers.PostOrderConfig(
 		publisher,
 		accountService,
 		affiliateService,
 		exchangeLookup,
 		serviceFeeRecipientAddress,
 	))
-	handlerPostOrder := pool.PoolDecoratorBaseFee(db, redisClient, handlers.PostOrder(
+	handlerPostOrder := handlers.PoolDecoratorBaseFee(db, redisClient, handlers.PostOrder(
 		publisher,
 		accountService,
 		affiliateService,
@@ -123,11 +122,11 @@ func main() {
 		p string
 		f func(http.ResponseWriter, *http.Request)
 	}{
-		{m: "GET", p: "^(/[^/]+)?/0x/v2/asset_pairs$", f: handlerGetAssetPairs}, // paginated, assetDataA, assetDataB
-		{m: "GET", p: "^(/[^/]+)?/0x/v2/orders$", f: handlerGetOrders},          // paginated, makerAssetProxyId, takerAssetProxyId, makerAssetAddress, takerAssetAddress, ...
+		{m: "GET", p: "^(/[^/]+)?/0x/v2/asset_pairs$", f: handlerGetAssetPairs},
+		{m: "GET", p: "^(/[^/]+)?/0x/v2/orders$", f: handlerGetOrders}, // paginated, makerAssetProxyId, takerAssetProxyId, makerAssetAddress, takerAssetAddress, ...
 		{m: "GET", p: "^(/[^/]+)?/0x/v2/order/$", f: handlerGetOrder},
-		{m: "GET", p: "^(/[^/]+)?/0x/v2/orderbook$", f: handlerGetOrderBook},          // paginated, baseAssetData, quoteAssetData
-		{m: "GET", p: "^(/[^/]+)?/0x/v2/fee_recipients$", f: handlerGetFeeRecipients}, // paginated
+		{m: "GET", p: "^(/[^/]+)?/0x/v2/orderbook$", f: handlerGetOrderBook}, // paginated, baseAssetData, quoteAssetData
+		{m: "GET", p: "^(/[^/]+)?/0x/v2/fee_recipients$", f: handlerGetFeeRecipients},
 		{m: "POST", p: "^(/[^/]+)?/0x/v2/order_config$", f: handlerPostOrderConfig},
 		{m: "POST", p: "^(/[^/]+)?/0x/v2/order$", f: handlerPostOrder},
 		{m: "GET", p: "^/_hc$", f: handlerGetHealthCheck},

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -25,22 +26,61 @@ type ExchangeLookup interface {
 	ExchangeIsKnown(*types.Address) <-chan uint64
 }
 
-func respondError(w http.ResponseWriter, e *zeroex.Error, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	errBytes, err := json.Marshal(e)
+func getFormattedOrder(dbOrder *dbModule.Order) *zeroex.OrderEx {
+	jsonOrder, err := json.Marshal(dbOrder.Order)
 	if err != nil {
 		log.Printf(err.Error())
+		return nil
 	}
-	w.Write(errBytes)
+	order := zeroex.Order{}
+	err = json.Unmarshal(jsonOrder, &order)
+	if err != nil {
+		log.Printf(err.Error())
+		return nil
+	}
+	return &zeroex.OrderEx{
+		Order: &order,
+		Metadata: zeroex.OrderMetadata{
+			fmt.Sprintf("%#x", dbOrder.OrderHash[:]),
+			dbOrder.FeeRate,
+			dbOrder.Status,
+			new(big.Int).Sub(dbOrder.TakerAssetAmount.Big(), dbOrder.TakerAssetAmountFilled.Big()).String(),
+		},
+	}
 }
 
-func extractPagination(query *url.Values) (uint64, uint64) {
-	queryPage := query.Get("page")
+func formatResponse(dbOrders []*dbModule.Order, format string, total uint64, page uint64, perPage uint64) ([]byte, string, error) {
+	if format == "application/octet-stream" {
+		response := []byte{}
+		for _, dbOrder := range dbOrders {
+			response = append(response, dbOrder.Bytes()[:]...)
+		}
+		return response, "application/octet-stream", nil
+	}
+	orders := []*zeroex.OrderEx{}
+	for _, dbOrder := range dbOrders {
+		orders = append(orders, getFormattedOrder(dbOrder))
+	}
+	ordersPaginated := createPaginatedRecords(total, page, perPage, orders)
+	response, err := json.Marshal(ordersPaginated)
+	return response, "application/json", err
+}
+
+func formatSingleResponse(dbOrder *dbModule.Order, format string) ([]byte, string, error) {
+	if format == "application/octet-stream" {
+		return dbOrder.Bytes()[:], "application/octet-stream", nil
+	}
+	order := getFormattedOrder(dbOrder)
+	response, err := json.Marshal(order)
+	return response, "application/json", err
+}
+
+func extractPagination(queryObject *url.Values) (uint64, uint64) {
+	queryPage := queryObject.Get("page")
 	if len(queryPage) == 0 {
 		queryPage = paginationPageDefault
 	}
-	queryPerPage := query.Get("perPage")
+	queryPerPage := queryObject.Get("perPage")
 	if len(queryPerPage) == 0 {
 		queryPerPage = paginationPerPageDefault
 	}
@@ -99,4 +139,14 @@ func createPaginatedOrders(
 	records zeroex.OrderExs,
 ) *zeroex.PadinatedOrders {
 	return &zeroex.PadinatedOrders{total, page, perPage, records}
+}
+
+func respondError(w http.ResponseWriter, e *zeroex.Error, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	errBytes, err := json.Marshal(e)
+	if err != nil {
+		log.Printf(err.Error())
+	}
+	w.Write(errBytes)
 }

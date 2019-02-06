@@ -31,9 +31,8 @@ func GetHealthCheck(
 		if err != nil {
 			log.Printf("Internal error: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeOrderSubmissionDisabled,
-				"Internal error",
-				nil,
+				Code:   zeroex.ErrorCodeOrderSubmissionDisabled,
+				Reason: "Internal error",
 			}, http.StatusInternalServerError)
 			return
 		}
@@ -42,9 +41,8 @@ func GetHealthCheck(
 		if err := db.Raw("SELECT 1").Error; err != nil {
 			log.Printf("Internal error: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeOrderSubmissionDisabled,
-				"Internal error",
-				nil,
+				Code:   zeroex.ErrorCodeOrderSubmissionDisabled,
+				Reason: "Internal error",
 			}, http.StatusInternalServerError)
 			return
 		}
@@ -54,9 +52,8 @@ func GetHealthCheck(
 		if len(hash) == 0 {
 			log.Printf("Internal error: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeOrderSubmissionDisabled,
-				"Internal error",
-				nil,
+				Code:   zeroex.ErrorCodeOrderSubmissionDisabled,
+				Reason: "Internal error",
 			}, http.StatusInternalServerError)
 			return
 		}
@@ -69,9 +66,8 @@ func GetHealthCheck(
 		if err != nil {
 			log.Printf("Internal error: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeOrderSubmissionDisabled,
-				"Internal error",
-				nil,
+				Code:   zeroex.ErrorCodeOrderSubmissionDisabled,
+				Reason: "Internal error",
 			}, http.StatusInternalServerError)
 			return
 		}

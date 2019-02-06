@@ -32,9 +32,8 @@ func PostOrder(
 		// Check HTTP request method
 		if r.Method != "POST" {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Unsupported HTTP request method",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Unsupported HTTP request method",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -46,9 +45,8 @@ func PostOrder(
 		}
 		if contentType != "application/json" {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Unsupported HTTP request content type",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Unsupported HTTP request content type",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -60,18 +58,16 @@ func PostOrder(
 		if err != nil && err != io.EOF {
 			log.Printf("Error reading content: %v", err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Error reading content",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Error reading content",
 			}, http.StatusInternalServerError)
 			return
 		}
 		if err := json.Unmarshal(contentBytes[:contentLength], &order); err != nil {
 			log.Printf("Malformed JSON '%v': %v", string(contentBytes[:]), err.Error())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeMalformedJSON,
-				"Malformed JSON",
-				nil,
+				Code:   zeroex.ErrorCodeMalformedJSON,
+				Reason: "Malformed JSON",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -82,24 +78,24 @@ func PostOrder(
 		// Check order assets
 		if !order.MakerAssetData.SupportedType() {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"makerAssetData",
-					zeroex.ValidationErrorCodeUnsupportedOption,
-					fmt.Sprintf("Unsupported asset type: %#x", order.MakerAssetData.ProxyId()),
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "makerAssetData",
+					Code:   zeroex.ValidationErrorCodeUnsupportedOption,
+					Reason: fmt.Sprintf("Unsupported asset type: %#x", order.MakerAssetData.ProxyId()),
 				}},
 			}, http.StatusBadRequest)
 			return
 		}
 		if !order.TakerAssetData.SupportedType() {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"takerAssetData",
-					zeroex.ValidationErrorCodeUnsupportedOption,
-					fmt.Sprintf("Unsupported asset type: %#x", order.TakerAssetData.ProxyId()),
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "takerAssetData",
+					Code:   zeroex.ValidationErrorCodeUnsupportedOption,
+					Reason: fmt.Sprintf("Unsupported asset type: %#x", order.TakerAssetData.ProxyId()),
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -108,12 +104,12 @@ func PostOrder(
 		// Check order signature type
 		if !order.Signature.Supported() {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"signature",
-					zeroex.ValidationErrorCodeInvalidSignatureOrHash,
-					"Unsupported signature type",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "signature",
+					Code:   zeroex.ValidationErrorCodeInvalidSignatureOrHash,
+					Reason: "Unsupported signature type",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -122,12 +118,12 @@ func PostOrder(
 		// Verify order signature
 		if !order.Signature.Verify(order.Maker, order.Hash()) {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"signature",
-					zeroex.ValidationErrorCodeInvalidSignatureOrHash,
-					"Signature validation failed",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "signature",
+					Code:   zeroex.ValidationErrorCodeInvalidSignatureOrHash,
+					Reason: "Signature validation failed",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -137,12 +133,12 @@ func PostOrder(
 		timeNow := big.NewInt(time.Now().Unix())
 		if timeNow.Cmp(order.ExpirationTimestampInSec.Big()) > 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"expirationUnixTimestampSec",
-					zeroex.ValidationErrorCodeValueOutOfRange,
-					"Order already expired",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "expirationUnixTimestampSec",
+					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+					Reason: "Order already expired",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -152,12 +148,12 @@ func PostOrder(
 		timeFuture := big.NewInt(0).Add(timeNow, big.NewInt(31536000000))
 		if timeFuture.Cmp(order.ExpirationTimestampInSec.Big()) < 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"expirationUnixTimestampSec",
-					zeroex.ValidationErrorCodeValueOutOfRange,
-					"Expiration in distant future",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "expirationUnixTimestampSec",
+					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+					Reason: "Expiration in distant future",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -166,24 +162,24 @@ func PostOrder(
 		// Check order asset amounts
 		if big.NewInt(0).Cmp(order.TakerAssetAmount.Big()) == 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"TakerAssetAmount",
-					zeroex.ValidationErrorCodeValueOutOfRange,
-					"takerAssetAmount must be > 0",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "TakerAssetAmount",
+					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+					Reason: "takerAssetAmount must be > 0",
 				}},
 			}, http.StatusBadRequest)
 			return
 		}
 		if big.NewInt(0).Cmp(order.MakerAssetAmount.Big()) == 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"MakerAssetAmount",
-					zeroex.ValidationErrorCodeValueOutOfRange,
-					"makerAssetAmount must be > 0",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "MakerAssetAmount",
+					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+					Reason: "makerAssetAmount must be > 0",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -209,12 +205,12 @@ func PostOrder(
 		networkID := <-chanNetworkID
 		if networkID == 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"exchangeContractAddress",
-					zeroex.ValidationErrorCodeInvalidAddress,
-					"Unknown exchangeContractAddress",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "exchangeContractAddress",
+					Code:   zeroex.ValidationErrorCodeInvalidAddress,
+					Reason: "Unknown exchangeContractAddress",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -227,12 +223,12 @@ func PostOrder(
 			exchangeAddressValid := bytes.Equal(exchangeAddress, order.SenderAddress[:])
 			if !exchangeAddressEmpty && !exchangeAddressValid {
 				respondError(w, &zeroex.Error{
-					zeroex.ErrorCodeValidationFailed,
-					"Validation Failed",
-					[]zeroex.ValidationError{zeroex.ValidationError{
-						"senderAddress",
-						zeroex.ValidationErrorCodeInvalidAddress,
-						"Invalid sender for this order pool / network",
+					Code:   zeroex.ErrorCodeValidationFailed,
+					Reason: "Validation Failed",
+					ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+						Field:  "senderAddress",
+						Code:   zeroex.ValidationErrorCodeInvalidAddress,
+						Reason: "Invalid sender for this order pool / network",
 					}},
 				}, http.StatusBadRequest)
 				return
@@ -242,9 +238,8 @@ func PostOrder(
 		// Check pool expiration
 		if pool.Expiration > 0 && pool.Expiration < timeNow.Uint64() {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeOrderSubmissionDisabled,
-				"Order Pool Expired",
-				[]zeroex.ValidationError{},
+				Code:   zeroex.ErrorCodeOrderSubmissionDisabled,
+				Reason: "Order Pool Expired",
 			}, http.StatusBadRequest)
 			return
 		}
@@ -253,12 +248,12 @@ func PostOrder(
 		feeRecipient := <-chanAffiliate
 		if feeRecipient == nil {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"feeRecipient",
-					zeroex.ValidationErrorCodeInvalidAddress,
-					"Invalid fee recipient",
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "feeRecipient",
+					Code:   zeroex.ValidationErrorCodeInvalidAddress,
+					Reason: "Invalid fee recipient",
 				}},
 			}, http.StatusBadRequest)
 			return
@@ -268,12 +263,12 @@ func PostOrder(
 		poolFee, err := pool.Fee()
 		if err != nil {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{zeroex.ValidationError{
-					"pool",
-					zeroex.ValidationErrorCodeInvalidAddress,
-					err.Error(),
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "pool",
+					Code:   zeroex.ValidationErrorCodeInvalidAddress,
+					Reason: err.Error(),
 				}},
 			}, http.StatusInternalServerError)
 			return
@@ -290,18 +285,18 @@ func PostOrder(
 		minFee.Sub(poolFee, account.Discount())
 		if totalFee.Cmp(minFee) < 0 {
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				[]zeroex.ValidationError{
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{
 					zeroex.ValidationError{
-						"makerFee",
-						zeroex.ValidationErrorCodeValueOutOfRange,
-						"Total fee must be at least: " + minFee.Text(10),
+						Field:  "makerFee",
+						Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+						Reason: "Total fee must be at least: " + minFee.Text(10),
 					},
 					zeroex.ValidationError{
-						"takerFee",
-						zeroex.ValidationErrorCodeValueOutOfRange,
-						"Total fee must be at least: " + minFee.Text(10),
+						Field:  "takerFee",
+						Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+						Reason: "Total fee must be at least: " + minFee.Text(10),
 					},
 				},
 			}, http.StatusBadRequest)
@@ -322,9 +317,8 @@ func PostOrder(
 		if ok := publisher.Publish(string(orderBytes[:])); !ok {
 			log.Println("Unable to publish order with hash %#x", order.Hash())
 			respondError(w, &zeroex.Error{
-				zeroex.ErrorCodeValidationFailed,
-				"Validation Failed",
-				nil,
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
 			}, http.StatusInternalServerError)
 		}
 
