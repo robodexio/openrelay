@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
@@ -53,8 +54,7 @@ func PostOrder(
 
 		// Parse HTTP request body content
 		order := types.Order{}
-		var contentBytes [4096]byte
-		contentLength, err := r.Body.Read(contentBytes[:])
+		contentBytes, err := ioutil.ReadAll(r.Body)
 		if err != nil && err != io.EOF {
 			log.Printf("Error reading content: %v", err.Error())
 			respondError(w, &zeroex.Error{
@@ -63,8 +63,8 @@ func PostOrder(
 			}, http.StatusInternalServerError)
 			return
 		}
-		if err := json.Unmarshal(contentBytes[:contentLength], &order); err != nil {
-			log.Printf("Malformed JSON '%v': %v", string(contentBytes[:]), err.Error())
+		if err := json.Unmarshal(contentBytes, &order); err != nil {
+			log.Printf("Malformed JSON '%v': %v", string(contentBytes), err.Error())
 			respondError(w, &zeroex.Error{
 				Code:   zeroex.ErrorCodeMalformedJSON,
 				Reason: "Malformed JSON",
@@ -160,18 +160,10 @@ func PostOrder(
 		}
 
 		// Check order asset amounts
-		if big.NewInt(0).Cmp(order.TakerAssetAmount.Big()) == 0 {
-			respondError(w, &zeroex.Error{
-				Code:   zeroex.ErrorCodeValidationFailed,
-				Reason: "Validation Failed",
-				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
-					Field:  "TakerAssetAmount",
-					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
-					Reason: "takerAssetAmount must be > 0",
-				}},
-			}, http.StatusBadRequest)
-			return
-		}
+		// makerAssetDataIsRoboDex := bytes.Equal(order.MakerAssetData[:4], types.RoboDexProxyID[:])
+		// takerAssetDataIsRoboDex := bytes.Equal(order.TakerAssetData[:4], types.RoboDexProxyID[:])
+		// if (makerAssetDataIsRoboDex && big.NewInt(0).Cmp(order.MakerAssetAmount.Big()) != 0) ||
+		// 	(!makerAssetDataIsRoboDex && big.NewInt(0).Cmp(order.MakerAssetAmount.Big()) == 0) {
 		if big.NewInt(0).Cmp(order.MakerAssetAmount.Big()) == 0 {
 			respondError(w, &zeroex.Error{
 				Code:   zeroex.ErrorCodeValidationFailed,
@@ -180,6 +172,20 @@ func PostOrder(
 					Field:  "MakerAssetAmount",
 					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
 					Reason: "makerAssetAmount must be > 0",
+				}},
+			}, http.StatusBadRequest)
+			return
+		}
+		// if (takerAssetDataIsRoboDex && big.NewInt(0).Cmp(order.TakerAssetAmount.Big()) != 0) ||
+		// 	(!takerAssetDataIsRoboDex && big.NewInt(0).Cmp(order.TakerAssetAmount.Big()) == 0) {
+		if big.NewInt(0).Cmp(order.TakerAssetAmount.Big()) == 0 {
+			respondError(w, &zeroex.Error{
+				Code:   zeroex.ErrorCodeValidationFailed,
+				Reason: "Validation Failed",
+				ValidationErrors: []zeroex.ValidationError{zeroex.ValidationError{
+					Field:  "TakerAssetAmount",
+					Code:   zeroex.ValidationErrorCodeValueOutOfRange,
+					Reason: "takerAssetAmount must be > 0",
 				}},
 			}, http.StatusBadRequest)
 			return

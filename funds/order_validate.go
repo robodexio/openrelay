@@ -3,12 +3,13 @@ package funds
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/notegio/openrelay/config"
-	"github.com/notegio/openrelay/types"
-	"github.com/notegio/openrelay/channels"
-	"github.com/notegio/openrelay/funds/balance"
 	"log"
 	"math/big"
+
+	"github.com/notegio/openrelay/channels"
+	"github.com/notegio/openrelay/config"
+	"github.com/notegio/openrelay/funds/balance"
+	"github.com/notegio/openrelay/types"
 )
 
 type OrderValidator interface {
@@ -67,6 +68,9 @@ func getRemainingAmount(numerator, denominator, target []byte) []byte {
 	numInt.SetBytes(numerator)
 	denomInt.SetBytes(denominator)
 	targetInt.SetBytes(target)
+	if big.NewInt(0).Cmp(denomInt) == 0 {
+		return []byte{0}
+	}
 	mulInt := new(big.Int).Mul(numInt, targetInt)
 	return new(big.Int).Sub(targetInt, new(big.Int).Div(mulInt, denomInt)).Bytes()
 }

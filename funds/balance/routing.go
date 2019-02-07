@@ -2,13 +2,14 @@ package balance
 
 import (
 	"context"
-	"github.com/notegio/openrelay/types"
-	"github.com/notegio/openrelay/channels"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"math/big"
-	"sync"
 	"fmt"
 	"log"
+	"math/big"
+	"sync"
+
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/notegio/openrelay/channels"
+	"github.com/notegio/openrelay/types"
 )
 
 type BalanceChecker interface {
@@ -22,8 +23,8 @@ type CachedBalanceChecker interface {
 }
 
 type routingBalanceChecker struct {
-	lookupCache map[string]*big.Int
-	cacheMutex *sync.Mutex
+	lookupCache          map[string]*big.Int
+	cacheMutex           *sync.Mutex
 	assetBalanceCheckers map[string]BalanceChecker
 }
 
@@ -104,5 +105,6 @@ func NewRpcRoutingBalanceChecker(rpcURL string) (CachedBalanceChecker, error) {
 	checkers := make(map[string]BalanceChecker)
 	checkers["0xf47261b0"] = NewRpcERC20BalanceChecker(conn)
 	checkers["0x02571792"] = NewRpcERC721BalanceChecker(conn)
+	checkers["0x0e2042d8"] = NewRpcERC20BalanceChecker(conn)
 	return &routingBalanceChecker{nil, &sync.Mutex{}, checkers}, nil
 }

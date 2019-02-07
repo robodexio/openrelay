@@ -8,9 +8,9 @@ import (
 
 type AssetData []byte
 
-var BitDexProxyID = [4]byte{93, 56, 142, 23}
 var ERC20ProxyID = [4]byte{244, 114, 97, 176}
 var ERC721ProxyID = [4]byte{2, 87, 23, 146}
+var RoboDexProxyID = [4]byte{14, 32, 66, 216}
 
 func (data AssetData) ProxyId() [4]byte {
 	result := [4]byte{}
@@ -20,7 +20,7 @@ func (data AssetData) ProxyId() [4]byte {
 
 func (data AssetData) Address() *Address {
 	address := &Address{}
-	if data.IsType(BitDexProxyID) || data.IsType(ERC20ProxyID) || data.IsType(ERC721ProxyID) {
+	if data.IsType(ERC20ProxyID) || data.IsType(ERC721ProxyID) || data.IsType(RoboDexProxyID) {
 		copy(address[:], data[16:36])
 	}
 	return address
@@ -31,7 +31,7 @@ func (data AssetData) IsType(proxyId [4]byte) bool {
 }
 
 func (data AssetData) SupportedType() bool {
-	return data.IsType(BitDexProxyID) || data.IsType(ERC20ProxyID) || data.IsType(ERC721ProxyID)
+	return data.IsType(ERC20ProxyID) || data.IsType(ERC721ProxyID) || data.IsType(RoboDexProxyID)
 }
 
 func (data AssetData) TokenID() *Uint256 {

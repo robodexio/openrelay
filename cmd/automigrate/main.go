@@ -37,6 +37,15 @@ I understand that if I am discovered to be in (intentional or accidental) violat
 3. Reporting my actions and any available identifying information to any relevant investigatory or enforcement authority, or
 4. Seeking any appropriate legal or equitable remedy that may be available to OpenRelay resulting from any violation of these terms.`
 
+var minUint256, _ = new(big.Int).SetString("0", 10)
+var maxUint256, _ = new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
+
+var erc20ProxyID, _ = hex.DecodeString("f47261b0")
+var erc721ProxyID, _ = hex.DecodeString("02571792")
+var roboDexProxyID, _ = hex.DecodeString("0e2042d8")
+
+var exchangeAddress, _ = common.HexToAddress("0x960df33de42294803296def3a988aeed5be5f9d7")
+
 func main() {
 	db, err := dbModule.GetDB(os.Args[1], os.Args[2])
 	if err != nil {
@@ -195,7 +204,7 @@ func fillExchanges(db *gorm.DB) {
 		log.Fatalf("Error adding exchange with address %s: %v", ropstenAddress.String(), result.Error.Error())
 	}
 
-	rinkebyAddress, _ := common.HexToAddress("0x25d26d6a7c86a250b7af3893b46b519388389bbe")
+	rinkebyAddress, _ := common.HexToAddress("0x960df33de42294803296def3a988aeed5be5f9d7")
 	result = db.Model(&dbModule.Exchange{}).Create(&dbModule.Exchange{Network: 4, Address: rinkebyAddress})
 	if result.Error != nil {
 		log.Fatalf("Error adding exchange with address %s: %v", rinkebyAddress.String(), result.Error.Error())
@@ -216,15 +225,9 @@ func fillExchanges(db *gorm.DB) {
 
 func fillAssetProxies(db *gorm.DB) {
 
-	erc20ProxyID, _ := hex.DecodeString("f47261b0")
-	erc721ProxyID, _ := hex.DecodeString("02571792")
-	roboDexProxyID, _ := hex.DecodeString("343adc23")
-
-	exchangeAddress, _ := common.HexToAddress("0x25d26d6a7c86a250b7af3893b46b519388389bbe")
-
 	var result *gorm.DB
 
-	erc20ProxyAddress, _ := common.HexToAddress("0xb8350417b8ff3431c90a290c856ddfaa72b7ac02")
+	erc20ProxyAddress, _ := common.HexToAddress("0x3440f0525fcfce79c8a2b925c389dd363f88a666")
 	result = db.Model(&dbModule.AssetProxy{}).Create(&dbModule.AssetProxy{
 		ID:              erc20ProxyID,
 		Name:            "ERC20",
@@ -236,7 +239,7 @@ func fillAssetProxies(db *gorm.DB) {
 		log.Fatalf("Error adding asset proxy with address %s: %v", erc20ProxyAddress.String(), result.Error.Error())
 	}
 
-	erc721ProxyAddress, _ := common.HexToAddress("0x0fcb30cdb4a799d6109d3d80fabb528d3d642780")
+	erc721ProxyAddress, _ := common.HexToAddress("0x562547c9f1deecb38d2df40ed5d651b4ef2cab60")
 	result = db.Model(&dbModule.AssetProxy{}).Create(&dbModule.AssetProxy{
 		ID:              erc721ProxyID,
 		Name:            "ERC721",
@@ -248,7 +251,7 @@ func fillAssetProxies(db *gorm.DB) {
 		log.Fatalf("Error adding asset proxy with address %s: %v", erc721ProxyAddress.String(), result.Error.Error())
 	}
 
-	roboDexProxyAddress, _ := common.HexToAddress("0xa0719d553d326c34b135d120f2bb366843aa635c")
+	roboDexProxyAddress, _ := common.HexToAddress("0x777c153cc3eca0527af132ebd83443f0f1d2dd05")
 	result = db.Model(&dbModule.AssetProxy{}).Create(&dbModule.AssetProxy{
 		ID:              roboDexProxyID,
 		Name:            "RoboDEX",
@@ -263,17 +266,10 @@ func fillAssetProxies(db *gorm.DB) {
 
 func fillAssets(db *gorm.DB) {
 
-	minUint256, _ := new(big.Int).SetString("0", 10)
-	maxUint256, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
-
-	erc20ProxyID, _ := hex.DecodeString("f47261b0")
-	//erc721ProxyID, _ := hex.DecodeString("02571792")
-	roboDexProxyID, _ := hex.DecodeString("343adc23")
-
 	var result *gorm.DB
 
-	wethAssetAddress, _ := common.HexToAddress("0x7acac581a8ca077f1a4547a165983d1ee4dca168")
-	wethAssetData, _ := common.HexToAssetData("0xf47261b00000000000000000000000007acac581a8ca077f1a4547a165983d1ee4dca168")
+	wethAssetAddress, _ := common.HexToAddress("0xbf3bd869581624e69d2bcb97c34d0804ed655a59")
+	wethAssetData, _ := common.HexToAssetData("0xf47261b0000000000000000000000000bf3bd869581624e69d2bcb97c34d0804ed655a59")
 	result = db.Model(&dbModule.Asset{}).Create(&dbModule.Asset{
 		Symbol:         "WETH",
 		Name:           "WETH",
@@ -292,8 +288,8 @@ func fillAssets(db *gorm.DB) {
 		log.Fatalf("Error adding asset with address %s: %v", wethAssetAddress.String(), result.Error.Error())
 	}
 
-	rdxAssetAddress, _ := common.HexToAddress("0x95f69a06397211699fd86a98b4cd3bc3aa7599dd")
-	rdxAssetData, _ := common.HexToAssetData("0x5d388e1700000000000000000000000095f69a06397211699fd86a98b4cd3bc3aa7599dd0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000000000ff")
+	rdxAssetAddress, _ := common.HexToAddress("0xed5bd0ee7619552a805cf0b845fcd9b17b9968ba")
+	rdxAssetData, _ := common.HexToAssetData("0x0e2042d8000000000000000000000000ed5bd0ee7619552a805cf0b845fcd9b17b9968ba")
 	result = db.Model(&dbModule.Asset{}).Create(&dbModule.Asset{
 		Symbol:         "RDX",
 		Name:           "RoboDEX Token",
@@ -312,15 +308,15 @@ func fillAssets(db *gorm.DB) {
 		log.Fatalf("Error adding asset with address %s: %v", rdxAssetAddress.String(), result.Error.Error())
 	}
 
-	weth9AssetAddress, _ := common.HexToAddress("0xc778417e063141139fce010982780140aa0cd5ab")
-	weth9AssetData, _ := common.HexToAssetData("0xf47261b0000000000000000000000000c778417e063141139fce010982780140aa0cd5ab")
+	weth0xAssetAddress, _ := common.HexToAddress("0xc778417e063141139fce010982780140aa0cd5ab")
+	weth0xAssetData, _ := common.HexToAssetData("0xf47261b0000000000000000000000000c778417e063141139fce010982780140aa0cd5ab")
 	result = db.Model(&dbModule.Asset{}).Create(&dbModule.Asset{
-		Symbol:         "WETH9",
-		Name:           "WETH9",
-		Address:        weth9AssetAddress,
+		Symbol:         "WETH0X",
+		Name:           "WETH0X",
+		Address:        weth0xAssetAddress,
 		Decimals:       18,
 		ProxyID:        erc20ProxyID,
-		Data:           &weth9AssetData,
+		Data:           &weth0xAssetData,
 		Precision:      6,
 		MinTradeAmount: common.BigToUint256(minUint256),
 		MaxTradeAmount: common.BigToUint256(maxUint256),
@@ -329,18 +325,18 @@ func fillAssets(db *gorm.DB) {
 		Quote:          false,
 	})
 	if result.Error != nil {
-		log.Fatalf("Error adding asset with address %s: %v", weth9AssetAddress.String(), result.Error.Error())
+		log.Fatalf("Error adding asset with address %s: %v", weth0xAssetAddress.String(), result.Error.Error())
 	}
 
-	zrxAssetAddress, _ := common.HexToAddress("0x2727e688b8fd40b198cd5fe6e408e00494a06f07")
-	zrxAssetData, _ := common.HexToAssetData("0xf47261b00000000000000000000000002727e688b8fd40b198cd5fe6e408e00494a06f07")
+	zrx0xAssetAddress, _ := common.HexToAddress("0x2727e688b8fd40b198cd5fe6e408e00494a06f07")
+	zrx0xAssetData, _ := common.HexToAssetData("0xf47261b00000000000000000000000002727e688b8fd40b198cd5fe6e408e00494a06f07")
 	result = db.Model(&dbModule.Asset{}).Create(&dbModule.Asset{
-		Symbol:         "ZRX",
-		Name:           "ZRX",
-		Address:        zrxAssetAddress,
+		Symbol:         "ZRX0X",
+		Name:           "ZRX0X",
+		Address:        zrx0xAssetAddress,
 		Decimals:       18,
 		ProxyID:        erc20ProxyID,
-		Data:           &zrxAssetData,
+		Data:           &zrx0xAssetData,
 		Precision:      6,
 		MinTradeAmount: common.BigToUint256(minUint256),
 		MaxTradeAmount: common.BigToUint256(maxUint256),
@@ -349,7 +345,7 @@ func fillAssets(db *gorm.DB) {
 		Quote:          false,
 	})
 	if result.Error != nil {
-		log.Fatalf("Error adding asset with address %s: %v", zrxAssetAddress.String(), result.Error.Error())
+		log.Fatalf("Error adding asset with address %s: %v", zrx0xAssetAddress.String(), result.Error.Error())
 	}
 }
 
@@ -367,7 +363,7 @@ func fillAssetPairs(db *gorm.DB) {
 	}
 
 	result = db.Model(&dbModule.AssetPair{}).Create(&dbModule.AssetPair{
-		AssetSymbolA: "WETH9",
+		AssetSymbolA: "WETH0X",
 		AssetSymbolB: "RDX",
 		Active:       true,
 	})
@@ -376,7 +372,7 @@ func fillAssetPairs(db *gorm.DB) {
 	}
 
 	result = db.Model(&dbModule.AssetPair{}).Create(&dbModule.AssetPair{
-		AssetSymbolA: "ZRX",
+		AssetSymbolA: "ZRX0X",
 		AssetSymbolB: "RDX",
 		Active:       true,
 	})
@@ -385,7 +381,7 @@ func fillAssetPairs(db *gorm.DB) {
 	}
 
 	result = db.Model(&dbModule.AssetPair{}).Create(&dbModule.AssetPair{
-		AssetSymbolA: "ZRX",
+		AssetSymbolA: "ZRX0X",
 		AssetSymbolB: "WETH",
 		Active:       true,
 	})

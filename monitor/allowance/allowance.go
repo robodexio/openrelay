@@ -23,12 +23,12 @@ import (
 )
 
 type allowanceBlockConsumer struct {
-	bitDexProxyAddress *big.Int
-	tokenProxyAddress  *big.Int
-	approvalTopic      *big.Int
-	feeTokenAddress    string // Needed for the SpendRecord,
-	logFilter          ethereum.LogFilterer
-	publisher          channels.Publisher
+	roboDexProxyAddress *big.Int
+	tokenProxyAddress   *big.Int
+	approvalTopic       *big.Int
+	feeTokenAddress     string // Needed for the SpendRecord,
+	logFilter           ethereum.LogFilterer
+	publisher           channels.Publisher
 }
 
 func (consumer *allowanceBlockConsumer) Consume(delivery channels.Delivery) {
@@ -75,8 +75,8 @@ func (consumer *allowanceBlockConsumer) Consume(delivery channels.Delivery) {
 			}
 			consumer.publisher.Publish(string(msg))
 		}
-	} else if coreTypes.BloomLookup(block.Bloom, consumer.approvalTopic) && coreTypes.BloomLookup(block.Bloom, common.BigToHash(consumer.bitDexProxyAddress)) {
-		log.Printf("Block %#x bloom filter indicates approval event for %#x", block.Hash, consumer.bitDexProxyAddress)
+	} else if coreTypes.BloomLookup(block.Bloom, consumer.approvalTopic) && coreTypes.BloomLookup(block.Bloom, common.BigToHash(consumer.roboDexProxyAddress)) {
+		log.Printf("Block %#x bloom filter indicates approval event for %#x", block.Hash, consumer.roboDexProxyAddress)
 		query := ethereum.FilterQuery{
 			FromBlock: block.Number,
 			ToBlock:   block.Number,
@@ -84,7 +84,7 @@ func (consumer *allowanceBlockConsumer) Consume(delivery channels.Delivery) {
 			Topics: [][]common.Hash{
 				[]common.Hash{common.BigToHash(consumer.approvalTopic)},
 				nil,
-				[]common.Hash{common.BigToHash(consumer.bitDexProxyAddress)},
+				[]common.Hash{common.BigToHash(consumer.roboDexProxyAddress)},
 			},
 		}
 		logs, err := consumer.logFilter.FilterLogs(context.Background(), query)
@@ -143,9 +143,9 @@ func NewRPCAllowanceBlockConsumer(rpcURL string, exchangeAddress string, publish
 	feeTokenAsset := make(types.AssetData, len(feeTokenAssetData))
 	copy(feeTokenAsset[:], feeTokenAssetData[:])
 	feeTokenAddress := feeTokenAsset.Address()
-	bitDexProxyAddress, err := exchange.GetAssetProxy(nil, types.BitDexProxyID)
+	roboDexProxyAddress, err := exchange.GetAssetProxy(nil, types.RoboDexProxyID)
 	if err != nil {
-		log.Printf("error getting bitDexProxyAddress")
+		log.Printf("error getting roboDexProxyAddress")
 		return nil, err
 	}
 	tokenProxyAddress, err := exchange.GetAssetProxy(nil, types.ERC20ProxyID)
@@ -153,5 +153,5 @@ func NewRPCAllowanceBlockConsumer(rpcURL string, exchangeAddress string, publish
 		log.Printf("error getting tokenProxyAddress")
 		return nil, err
 	}
-	return NewAllowanceBlockConsumer(bitDexProxyAddress.Big(), tokenProxyAddress.Big(), feeTokenAddress.String(), client, publisher), nil
+	return NewAllowanceBlockConsumer(roboDexProxyAddress.Big(), tokenProxyAddress.Big(), feeTokenAddress.String(), client, publisher), nil
 }
