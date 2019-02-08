@@ -44,7 +44,7 @@ var erc20ProxyID, _ = hex.DecodeString("f47261b0")
 var erc721ProxyID, _ = hex.DecodeString("02571792")
 var roboDexProxyID, _ = hex.DecodeString("0e2042d8")
 
-var exchangeAddress, _ = common.HexToAddress("0x960df33de42294803296def3a988aeed5be5f9d7")
+var exchangeAddress, _ = common.HexToAddress("0x862c8bbdc877031743a65834a891855c93ebad04")
 
 func main() {
 	db, err := dbModule.GetDB(os.Args[1], os.Args[2])
@@ -204,7 +204,7 @@ func fillExchanges(db *gorm.DB) {
 		log.Fatalf("Error adding exchange with address %s: %v", ropstenAddress.String(), result.Error.Error())
 	}
 
-	rinkebyAddress, _ := common.HexToAddress("0x960df33de42294803296def3a988aeed5be5f9d7")
+	rinkebyAddress, _ := common.HexToAddress("0x862c8bbdc877031743a65834a891855c93ebad04")
 	result = db.Model(&dbModule.Exchange{}).Create(&dbModule.Exchange{Network: 4, Address: rinkebyAddress})
 	if result.Error != nil {
 		log.Fatalf("Error adding exchange with address %s: %v", rinkebyAddress.String(), result.Error.Error())
@@ -227,7 +227,7 @@ func fillAssetProxies(db *gorm.DB) {
 
 	var result *gorm.DB
 
-	erc20ProxyAddress, _ := common.HexToAddress("0x3440f0525fcfce79c8a2b925c389dd363f88a666")
+	erc20ProxyAddress, _ := common.HexToAddress("0x0a667983bb3edd6d50a9d42dfed998667e1ef1c9")
 	result = db.Model(&dbModule.AssetProxy{}).Create(&dbModule.AssetProxy{
 		ID:              erc20ProxyID,
 		Name:            "ERC20",
@@ -239,7 +239,7 @@ func fillAssetProxies(db *gorm.DB) {
 		log.Fatalf("Error adding asset proxy with address %s: %v", erc20ProxyAddress.String(), result.Error.Error())
 	}
 
-	erc721ProxyAddress, _ := common.HexToAddress("0x562547c9f1deecb38d2df40ed5d651b4ef2cab60")
+	erc721ProxyAddress, _ := common.HexToAddress("0xe340954bd72478fcfbaba3d8c2b582bf766cef12")
 	result = db.Model(&dbModule.AssetProxy{}).Create(&dbModule.AssetProxy{
 		ID:              erc721ProxyID,
 		Name:            "ERC721",
@@ -251,7 +251,7 @@ func fillAssetProxies(db *gorm.DB) {
 		log.Fatalf("Error adding asset proxy with address %s: %v", erc721ProxyAddress.String(), result.Error.Error())
 	}
 
-	roboDexProxyAddress, _ := common.HexToAddress("0x777c153cc3eca0527af132ebd83443f0f1d2dd05")
+	roboDexProxyAddress, _ := common.HexToAddress("0xe90765ffc51c3d20c2b0a41c12238500be5e1382")
 	result = db.Model(&dbModule.AssetProxy{}).Create(&dbModule.AssetProxy{
 		ID:              roboDexProxyID,
 		Name:            "RoboDEX",
@@ -268,8 +268,8 @@ func fillAssets(db *gorm.DB) {
 
 	var result *gorm.DB
 
-	wethAssetAddress, _ := common.HexToAddress("0xbf3bd869581624e69d2bcb97c34d0804ed655a59")
-	wethAssetData, _ := common.HexToAssetData("0xf47261b0000000000000000000000000bf3bd869581624e69d2bcb97c34d0804ed655a59")
+	wethAssetAddress, _ := common.HexToAddress("0x1efecaf386509c6c12215e960673230aabd56871")
+	wethAssetData, _ := common.HexToAssetData("0xf47261b00000000000000000000000001efecaf386509c6c12215e960673230aabd56871")
 	result = db.Model(&dbModule.Asset{}).Create(&dbModule.Asset{
 		Symbol:         "WETH",
 		Name:           "WETH",
@@ -288,8 +288,8 @@ func fillAssets(db *gorm.DB) {
 		log.Fatalf("Error adding asset with address %s: %v", wethAssetAddress.String(), result.Error.Error())
 	}
 
-	rdxAssetAddress, _ := common.HexToAddress("0xed5bd0ee7619552a805cf0b845fcd9b17b9968ba")
-	rdxAssetData, _ := common.HexToAssetData("0x0e2042d8000000000000000000000000ed5bd0ee7619552a805cf0b845fcd9b17b9968ba")
+	rdxAssetAddress, _ := common.HexToAddress("0xc6eae188e1498bedb4d76236446b335cb7253c3a")
+	rdxAssetData, _ := common.HexToAssetData("0x0e2042d8000000000000000000000000c6eae188e1498bedb4d76236446b335cb7253c3a")
 	result = db.Model(&dbModule.Asset{}).Create(&dbModule.Asset{
 		Symbol:         "RDX",
 		Name:           "RoboDEX Token",
